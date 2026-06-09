@@ -64,18 +64,42 @@ Grab the file for your OS from [Releases](https://github.com/devjwkim/lrceditor/
 | Ubuntu/Linux (portable) | `LRC EDITOR-x.y.z.AppImage` |
 | Ubuntu/Debian (package) | `lrc-editor_x.y.z_amd64.deb` |
 
-> ⚠️ These builds are **not code-signed**, so the OS shows an "unidentified developer" warning on first launch. Allow it once:
->
-> - **macOS**: **right-click → Open → Open**, or remove the quarantine flag:
->   ```bash
->   xattr -dr com.apple.quarantine "/Applications/LRC EDITOR.app"
->   ```
-> - **Windows**: on the SmartScreen prompt, **More info → Run anyway**.
-> - **Linux (AppImage)**: make it executable and run:
->   ```bash
->   chmod +x "LRC EDITOR-x.y.z.AppImage" && ./"LRC EDITOR-x.y.z.AppImage"
->   ```
-> - **Linux (deb)**: `sudo dpkg -i lrc-editor_x.y.z_amd64.deb`
+> ⚠️ These builds are ad-hoc signed but **not notarized by Apple**, so the OS blocks
+> them on first launch. Allow it once per platform:
+
+### 🍎 macOS — REQUIRED first-launch step
+
+On **macOS 15 (Sequoia) and later**, double-clicking shows:
+*"Apple could not verify 'LRC EDITOR' is free of malware…"* — and there is **NO
+"Open Anyway" button in that dialog** (Apple moved it). Do this **once**:
+
+**1. Drag `LRC EDITOR.app` into your `/Applications` folder, then run this in Terminal:**
+
+```bash
+xattr -cr "/Applications/LRC EDITOR.app"
+```
+
+Then open the app normally (double-click). That's it — it won't ask again.
+
+> `xattr -cr` clears the "downloaded from the internet" quarantine flag. The app is
+> validly ad-hoc signed, so once the flag is gone it launches like any other app.
+> Run it from `/Applications`, **not** from the mounted DMG (the DMG is read-only & quarantined).
+
+<details><summary>Alternative (no Terminal)</summary>
+
+Try to open the app once (it gets blocked), then go to
+**System Settings → Privacy & Security**, scroll down, and click **“Open Anyway”**
+next to the LRC EDITOR message; authenticate, then open again.
+</details>
+
+### 🪟 Windows
+On the SmartScreen prompt: **More info → Run anyway**.
+
+### 🐧 Linux
+```bash
+chmod +x "LRC EDITOR-x.y.z.AppImage" && ./"LRC EDITOR-x.y.z.AppImage"   # AppImage
+sudo dpkg -i lrc-editor_x.y.z_amd64.deb                                  # deb
+```
 
 ## Development
 
