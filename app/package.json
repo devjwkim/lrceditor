@@ -29,6 +29,8 @@
     "directories": {
       "output": "dist"
     },
+    "electronLanguages": ["en", "ko", "ja", "zh_CN", "zh_TW"],
+    "afterPack": "build/afterPack.cjs",
     "files": [
       "main.js",
       "preload.js",
