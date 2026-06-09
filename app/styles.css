@@ -26,6 +26,8 @@ html, body {
 }
 .topbar strong { letter-spacing: .5px; }
 .status { color: var(--muted); font-size: 13px; }
+.langPick { margin-left: auto; display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+.langPick select { background: var(--panel2); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 3px 6px; }
 
 .split { display: flex; height: calc(100% - 41px); }
 .pane { padding: 16px; overflow: auto; }
@@ -93,8 +95,8 @@ select { background: var(--panel2); color: var(--text); border: 1px solid var(--
 }
 /* 붙여넣기로 들어온 인라인 색상/배경 무시하고 순수 텍스트처럼 표시 */
 .row .txt * { color: inherit !important; background: transparent !important; font: inherit !important; }
-/* 글자가 없는 줄도 클릭 영역이 보이도록 안내 문구 (편집 중엔 숨김) */
-.row .txt:empty:not(:focus)::before { content: '가사 입력…'; color: var(--muted); }
+/* 글자가 없는 줄도 클릭 영역이 보이도록 안내 문구 (편집 중엔 숨김) — 문구는 언어팩에서 주입 */
+.row .txt:empty:not(:focus)::before { content: var(--lyric-ph, 'Enter lyrics…'); color: var(--muted); }
 .row.active .txt { color: var(--hi); font-weight: 600; }
 .row .del { color: var(--muted); border: none; background: none; padding: 2px 6px; font-size: 15px; }
 .row .del:hover { color: #ff6b6b; background: none; }

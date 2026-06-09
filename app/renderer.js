@@ -15,6 +15,9 @@ const audio = document.getElementById('audio');
 const { fmt, parseLrc } = window.LRC;
 const serializeLrc = () => window.LRC.serializeLrc(state.lines);
 
+// 언어팩 단축 헬퍼
+const t = (key, params) => window.I18N.t(key, params);
+
 // ---------- 렌더링 ----------
 const linesEl = document.getElementById('lines');
 
@@ -28,7 +31,7 @@ function render() {
     const ts = document.createElement('span');
     ts.className = 'ts' + (row.time == null ? ' empty' : '');
     ts.textContent = row.time == null ? '--:--.--' : fmt(row.time);
-    ts.title = '클릭=그 시각으로 이동 · 더블클릭=시간 편집 (mm:ss.xx)';
+    ts.title = t('tip.ts');
     const resetTs = () => {
       ts.textContent = state.lines[i].time == null ? '--:--.--' : fmt(state.lines[i].time);
       ts.classList.toggle('empty', state.lines[i].time == null);
@@ -51,8 +54,8 @@ function render() {
     });
     ts.addEventListener('paste', (e) => {
       e.preventDefault();
-      const t = (e.clipboardData || window.clipboardData).getData('text/plain').trim();
-      document.execCommand('insertText', false, t);
+      const clip = (e.clipboardData || window.clipboardData).getData('text/plain').trim();
+      document.execCommand('insertText', false, clip);
     });
     ts.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') { e.preventDefault(); ts.blur(); }
@@ -63,7 +66,7 @@ function render() {
       if (ts.dataset.cancel === '1') { delete ts.dataset.cancel; resetTs(); return; }
       const sec = window.LRC.parseTimeStr(ts.textContent);
       if (sec == null) {
-        setStatus('시간 형식이 올바르지 않습니다 — mm:ss.xx (예: 01:23.45). 저장하지 않음.');
+        setStatus(t('status.timeInvalid'));
         resetTs();
         return;
       }
@@ -75,7 +78,7 @@ function render() {
       render();
       const selEl = linesEl.querySelector('.row.selected');
       if (selEl) selEl.scrollIntoView({ block: 'nearest' });
-      setStatus('시간 수정됨: ' + fmt(sec));
+      setStatus(t('status.timeFixed', { t: fmt(sec) }));
     });
 
     const txt = document.createElement('span');
@@ -97,8 +100,8 @@ function render() {
     // 붙여넣기는 항상 순수 텍스트로 (색상/서식 유입 방지)
     txt.addEventListener('paste', (e) => {
       e.preventDefault();
-      const t = (e.clipboardData || window.clipboardData).getData('text/plain').replace(/\r?\n/g, ' ');
-      document.execCommand('insertText', false, t);
+      const clip = (e.clipboardData || window.clipboardData).getData('text/plain').replace(/\r?\n/g, ' ');
+      document.execCommand('insertText', false, clip);
     });
     txt.addEventListener('blur', () => {
       txt.contentEditable = 'false';
@@ -114,7 +117,7 @@ function render() {
     const del = document.createElement('button');
     del.className = 'del';
     del.textContent = '✕';
-    del.title = '줄 삭제';
+    del.title = t('tip.del');
     del.addEventListener('click', (e) => {
       e.stopPropagation();
       state.lines.splice(i, 1);
@@ -143,7 +146,7 @@ function updateStampBtn() {
   const ok = state.lines.length > 0 && state.selected >= 0;
   const btn = document.getElementById('stampBtn');
   btn.disabled = !ok;
-  btn.title = ok ? '단축키: S' : '먼저 가사 줄을 선택하세요';
+  btn.title = ok ? t('tip.stampEnabled') : t('tip.stampDisabled');
 }
 
 // ---------- 데모: 현재 재생 줄 강조 ----------
@@ -183,7 +186,12 @@ const playBtn = document.getElementById('playBtn');
 const curTimeEl = document.getElementById('curTime');
 const durTimeEl = document.getElementById('durTime');
 
-function setStatus(msg) { document.getElementById('statusText').textContent = msg; }
+// dirty=true(기본)면 사용자 동작에 의한 메시지로 표시 → 언어전환 시 초기문구로 덮어쓰지 않음
+let statusDirty = false;
+function setStatus(msg, dirty = true) {
+  if (dirty) statusDirty = true;
+  document.getElementById('statusText').textContent = msg;
+}
 
 async function loadAudioFromPath(filePath, name) {
   const ab = await window.api.readAudio(filePath);
@@ -193,7 +201,7 @@ async function loadAudioFromPath(filePath, name) {
   state.audioName = name || filePath.split(/[\\/]/).pop();
   audio.src = state.audioUrl;
   document.getElementById('trackName').textContent = state.audioName;
-  setStatus('오디오 로드됨: ' + state.audioName);
+  setStatus(t('status.audioLoaded', { name: state.audioName }));
 }
 
 function seekTo(sec) {
@@ -208,13 +216,13 @@ function clearAudio() {
   audio.load();
   if (state.audioUrl) { URL.revokeObjectURL(state.audioUrl); state.audioUrl = null; }
   state.audioName = null;
-  document.getElementById('trackName').textContent = '로드된 파일 없음';
+  document.getElementById('trackName').textContent = t('player.noFile');
   seek.value = 0; seek.max = 100;
   curTimeEl.textContent = fmt(0);
   durTimeEl.textContent = fmt(0);
-  playBtn.textContent = '▶︎ 재생';
+  playBtn.textContent = t('btn.play');
   lastActive = -1;
-  setStatus('mp3 해제됨 — 다른 mp3를 열거나 끌어다 놓으세요');
+  setStatus(t('status.mp3Cleared'));
 }
 
 // 빈 LRC로 새로 시작 (읽어오기 없이 바로 작성)
@@ -224,7 +232,7 @@ function startNewLrc() {
   state.lrcPath = null;
   lastActive = -1;
   render();
-  setStatus('빈 LRC로 시작 — 가사 영역을 클릭해 입력하고 재생 중 S로 시간을 찍으세요');
+  setStatus(t('status.newLrc'));
 }
 
 // 현재 가사 해제 → 다른 lrc 첨부 가능 상태로
@@ -234,7 +242,7 @@ function clearLrc() {
   state.lrcPath = null;
   lastActive = -1;
   render();
-  setStatus('가사 해제됨 — 다른 lrc를 열거나 끌어다 놓으세요');
+  setStatus(t('status.lrcCleared'));
 }
 
 audio.addEventListener('loadedmetadata', () => {
@@ -246,9 +254,9 @@ audio.addEventListener('timeupdate', () => {
   if (!seeking) seek.value = audio.currentTime;
   highlightActive();
 });
-audio.addEventListener('play', () => { playBtn.textContent = '⏸ 일시정지'; });
-audio.addEventListener('pause', () => { playBtn.textContent = '▶︎ 재생'; });
-audio.addEventListener('ended', () => { playBtn.textContent = '▶︎ 재생'; });
+audio.addEventListener('play', () => { playBtn.textContent = t('btn.pause'); });
+audio.addEventListener('pause', () => { playBtn.textContent = t('btn.play'); });
+audio.addEventListener('ended', () => { playBtn.textContent = t('btn.play'); });
 
 let seeking = false;
 seek.addEventListener('input', () => { seeking = true; curTimeEl.textContent = fmt(parseFloat(seek.value)); });
@@ -294,13 +302,13 @@ document.getElementById('openMp3').addEventListener('click', async () => {
 
 document.getElementById('openLrc').addEventListener('click', async () => {
   const res = await window.api.openLrc();
-  if (res) { state.lines = parseLrc(res.content); state.lrcPath = res.path; state.selected = 0; render(); setStatus('LRC 로드됨: ' + res.name); }
+  if (res) { state.lines = parseLrc(res.content); state.lrcPath = res.path; state.selected = 0; render(); setStatus(t('status.lrcLoaded', { name: res.name })); }
 });
 
 document.getElementById('saveLrc').addEventListener('click', async () => {
   const content = serializeLrc();
   const saved = await window.api.saveLrc(content, defaultSaveName());
-  if (saved) { state.lrcPath = saved; setStatus('저장됨: ' + saved); }
+  if (saved) { state.lrcPath = saved; setStatus(t('status.saved', { path: saved })); }
 });
 
 // 저장 기본 파일명: 이미 연 lrc가 있으면 그 경로, 아니면 mp3파일명.lrc, 둘 다 없으면 lyrics.lrc
@@ -311,19 +319,18 @@ function defaultSaveName() {
 }
 
 document.getElementById('newLrc').addEventListener('click', () => {
-  if (state.lines.length > 0 &&
-      !window.confirm('빈 LRC로 새로 시작할까요? 저장하지 않은 현재 가사는 사라집니다.')) return;
+  if (state.lines.length > 0 && !window.confirm(t('confirm.newLrc'))) return;
   startNewLrc();
 });
 
 document.getElementById('clearMp3').addEventListener('click', () => {
-  if (!state.audioUrl) { setStatus('해제할 mp3가 없습니다'); return; }
+  if (!state.audioUrl) { setStatus(t('status.noMp3ToClear')); return; }
   clearAudio();
 });
 
 document.getElementById('clearLrc').addEventListener('click', () => {
-  if (state.lines.length === 0) { setStatus('해제할 가사가 없습니다'); return; }
-  if (!window.confirm('현재 가사를 해제할까요? 저장하지 않은 변경은 사라집니다.')) return;
+  if (state.lines.length === 0) { setStatus(t('status.noLrcToClear')); return; }
+  if (!window.confirm(t('confirm.clearLrc'))) return;
   clearLrc();
 });
 
@@ -344,11 +351,55 @@ document.body.addEventListener('drop', async (e) => {
     if (lower.endsWith('.lrc') || lower.endsWith('.txt')) {
       const content = await window.api.readLrc(p);
       state.lines = parseLrc(content); state.lrcPath = p; state.selected = 0; render();
-      setStatus('LRC 로드됨: ' + file.name);
+      setStatus(t('status.lrcLoaded', { name: file.name }));
     } else {
       await loadAudioFromPath(p, file.name);
     }
   }
 });
 
+// ---------- 언어팩 ----------
+// 정적 요소(data-i18n)·툴팁(data-i18n-title)·동적 요소에 현재 언어 적용
+function applyI18n() {
+  document.querySelectorAll('[data-i18n]').forEach((el) => { el.textContent = t(el.dataset.i18n); });
+  document.querySelectorAll('[data-i18n-title]').forEach((el) => { el.title = t(el.dataset.i18nTitle); });
+  // 힌트는 kbd 태그 포함이라 별도 처리
+  const hintEl = document.querySelector('.hint');
+  if (hintEl) {
+    hintEl.innerHTML = t('hint')
+      .split('{S}').join('<kbd>S</kbd>')
+      .split('{Enter}').join('<kbd>Enter</kbd>')
+      .split('{Esc}').join('<kbd>Esc</kbd>');
+  }
+  // 가사 placeholder(빈 줄 안내)는 CSS 변수로 전달
+  linesEl.style.setProperty('--lyric-ph', JSON.stringify(t('placeholder.lyric')));
+  // 동적 텍스트
+  document.documentElement.lang = window.I18N.getLang();
+  if (!state.audioName) document.getElementById('trackName').textContent = t('player.noFile');
+  playBtn.textContent = audio.paused ? t('btn.play') : t('btn.pause');
+  // 시작 안내(아직 동적 상태 메시지가 없을 때만)
+  if (!statusDirty) setStatus(t('status.initial'), false);
+  updateStampBtn();
+}
+
+function initI18n() {
+  const saved = (typeof localStorage !== 'undefined' && localStorage.getItem('lrc.lang')) || 'en';
+  window.I18N.setLang(saved);
+  const sel = document.getElementById('langSelect');
+  window.I18N.langs.forEach((l) => {
+    const o = document.createElement('option');
+    o.value = l.code; o.textContent = l.label;
+    sel.appendChild(o);
+  });
+  sel.value = window.I18N.getLang();
+  sel.addEventListener('change', () => {
+    window.I18N.setLang(sel.value);
+    if (typeof localStorage !== 'undefined') localStorage.setItem('lrc.lang', sel.value);
+    applyI18n();
+    render(); // 행 툴팁/placeholder 갱신
+  });
+  applyI18n();
+}
+
+initI18n();
 render();

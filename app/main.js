@@ -39,12 +39,15 @@ function createWindow() {
     });
     mainWindow.webContents.on('did-finish-load', async () => {
       try {
-        // 렌더러에서 LRC 공용 로직이 로드/동작하는지 검증
+        // 렌더러에서 LRC/언어팩 공용 로직이 로드/동작하는지 검증
         const n = await mainWindow.webContents.executeJavaScript(`(() => {
           const lines = window.LRC.parseLrc('[00:00.00]a\\n[00:01.50]b');
-          return { lines: lines.length, t: window.LRC.parseTimeStr('01:23.45') };
+          window.I18N.setLang('ko');
+          const ko = window.I18N.t('btn.save');
+          window.I18N.setLang('en');
+          return { lines: lines.length, t: window.LRC.parseTimeStr('01:23.45'), langs: window.I18N.langs.length, ko };
         })()`);
-        console.log('[smoke] parsedLines=' + n.lines + ' parseTimeStr=' + n.t);
+        console.log('[smoke] parsedLines=' + n.lines + ' parseTimeStr=' + n.t + ' langs=' + n.langs + ' ko.save=' + n.ko);
         console.log('[smoke] OK');
       } catch (err) {
         console.error('[smoke] FAIL', err && err.message);

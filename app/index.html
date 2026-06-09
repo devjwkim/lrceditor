@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta http-equiv="Content-Security-Policy"
@@ -10,15 +10,19 @@
 <body>
   <header class="topbar">
     <strong>LRC EDITOR</strong>
-    <span id="statusText" class="status">mp3 / lrc 파일을 열거나 끌어다 놓으세요</span>
+    <span id="statusText" class="status"></span>
+    <label class="langPick">
+      <span data-i18n="label.language">Language</span>
+      <select id="langSelect"></select>
+    </label>
   </header>
 
   <main class="split">
     <!-- 좌측: mp3 재생기 -->
     <section class="pane player" id="dropZone">
-      <h2>🎵 재생기</h2>
-      <div class="dropHint" id="dropHint">여기에 mp3 / lrc 를 끌어다 놓기</div>
-      <div class="trackName" id="trackName">로드된 파일 없음</div>
+      <h2 data-i18n="player.title">🎵 Player</h2>
+      <div class="dropHint" id="dropHint" data-i18n="player.dropHint">Drop mp3 / lrc here</div>
+      <div class="trackName" id="trackName"></div>
 
       <audio id="audio"></audio>
 
@@ -28,10 +32,11 @@
       </div>
 
       <div class="controls">
-        <button id="playBtn">▶︎ 재생</button>
+        <button id="playBtn" data-i18n="btn.play">▶︎ Play</button>
         <button id="back5">⟲ 5s</button>
         <button id="fwd5">5s ⟳</button>
-        <label class="rate">속도
+        <label class="rate">
+          <span data-i18n="label.speed">Speed</span>
           <select id="rate">
             <option value="0.5">0.5×</option>
             <option value="0.75">0.75×</option>
@@ -43,34 +48,35 @@
       </div>
 
       <div class="fileBtns">
-        <button id="openMp3">mp3 열기…</button>
-        <button id="clearMp3" title="현재 mp3 해제 (다른 mp3 첨부 가능)">mp3해제</button>
+        <button id="openMp3" data-i18n="btn.openMp3">Open mp3…</button>
+        <button id="clearMp3" data-i18n="btn.clearMp3" data-i18n-title="tip.clearMp3">Clear mp3</button>
       </div>
     </section>
 
     <!-- 우측: lrc 편집기 -->
     <section class="pane editor">
       <div class="editorHead">
-        <h2>📝 LRC 편집기</h2>
+        <h2 data-i18n="editor.title">📝 LRC Editor</h2>
         <div class="editorBtns">
-          <button id="newLrc" title="빈 LRC로 새로 시작">새 LRC</button>
-          <button id="openLrc">LRC 열기…</button>
-          <button id="clearLrc" title="현재 가사 해제 (다른 lrc 첨부 가능)">LRC해제</button>
-          <button id="saveLrc">저장…</button>
+          <button id="newLrc" data-i18n="btn.newLrc" data-i18n-title="tip.newLrc">New LRC</button>
+          <button id="openLrc" data-i18n="btn.openLrc">Open LRC…</button>
+          <button id="clearLrc" data-i18n="btn.clearLrc" data-i18n-title="tip.clearLrc">Clear LRC</button>
+          <button id="saveLrc" data-i18n="btn.save">Save…</button>
         </div>
       </div>
 
       <div class="stampBar">
-        <button id="stampBtn" class="primary" title="단축키: S">⏱ 현재 시각 찍기 (S)</button>
-        <button id="addLine">+ 줄 추가</button>
-        <label class="demoToggle"><input type="checkbox" id="demoMode" /> 데모(가사 따라가기)</label>
+        <button id="stampBtn" class="primary" data-i18n="btn.stamp">⏱ Stamp time (S)</button>
+        <button id="addLine" data-i18n="btn.addLine">+ Add line</button>
+        <label class="demoToggle"><input type="checkbox" id="demoMode" /> <span data-i18n="label.demo">Demo (follow lyrics)</span></label>
       </div>
 
       <ol id="lines" class="lines"></ol>
-      <div class="hint">가사 영역 클릭=편집(빈 줄도) · 시간 더블클릭=시간 편집(mm:ss.xx) · 재생 중 <kbd>S</kbd>=타임스탬프 · <kbd>Enter</kbd>=확정 · <kbd>Esc</kbd>=취소</div>
+      <div class="hint"></div>
     </section>
   </main>
 
+  <script src="i18n.js"></script>
   <script src="lrc-core.js"></script>
   <script src="renderer.js"></script>
 </body>

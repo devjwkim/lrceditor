@@ -1,8 +1,8 @@
 # 테스트 결과
 
-- 일자: 2026-06-08
+- 일자: 2026-06-09
 - 환경: macOS (Darwin 24.4.0) · Node v23.11.0 · Electron 32.3.3
-- 대상 샘플: `sample/cherry.mp3` (256kbps, 44.1kHz, 8,333,303 bytes) · `sample/cherry.lrc`
+- 실행: `npm --prefix app test` (lrc-core + i18n)
 
 ## 1. 순수 로직 단위 테스트 — `lrc-core`
 
@@ -11,7 +11,7 @@
 node app/test/lrc-core.test.js
 ```
 
-결과: **11 passed, 0 failed** ✅
+결과: **18 passed, 0 failed** ✅ (fmt/parseTimeStr/parse/round-trip/샘플)
 
 | # | 케이스 | 결과 |
 |---|--------|------|
@@ -27,24 +27,35 @@ node app/test/lrc-core.test.js
 | 10 | round-trip: parse→serialize→parse 값 보존 | ✓ |
 | 11 | 실제 `sample/cherry.lrc` 파싱(20줄, 단조 증가, 직렬화 재파싱 줄수 동일) | ✓ |
 
-## 2. Electron 부팅 스모크 테스트
+## 2. 언어팩 단위 테스트 — `i18n`
+
+실행:
+```bash
+node app/test/i18n.test.js
+```
+
+결과: **8 passed, 0 failed** ✅
+- en/ko/ja/zh **키 집합 완전 일치**(누락/잉여 0), 빈 값 0
+- 기본 en, `setLang` 전환, 알 수 없는 언어 무시, `{name}`/`{path}` 보간, 미존재 키 폴백
+
+## 3. Electron 부팅 스모크 테스트
 
 실행:
 ```bash
 SMOKE=1 npm --prefix app start
 ```
 
-동작: 앱 부팅 → 렌더러 로드 → `window.LRC.parseLrc()` / `parseTimeStr()` 검증 후 자동 종료.
+동작: 앱 부팅 → 렌더러 로드 → `window.LRC` / `window.I18N` 검증 후 자동 종료.
 
 출력:
 ```
-[smoke] parsedLines=2 parseTimeStr=83.45
+[smoke] parsedLines=2 parseTimeStr=83.45 langs=4 ko.save=저장…
 [smoke] OK
 ```
 
 검증 항목:
 - ✅ 메인/preload/렌더러 로드 시 예외 없음 (`render-process-gone` 미발생)
-- ✅ 브라우저 컨텍스트에서 `lrc-core.js` 로드 및 파싱/시간검증 동작
+- ✅ `lrc-core.js` + `i18n.js` 로드 및 파싱/시간검증/언어전환 동작
 - ✅ CSP·contextIsolation 설정 하에서 렌더러 정상 구동
 
 ## 수동 확인 권장 (GUI 상호작용 — 자동화 범위 밖)
