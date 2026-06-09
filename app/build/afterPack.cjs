@@ -1,9 +1,12 @@
 'use strict';
-// electron-builder afterPack 훅: macOS Electron Framework 에 남는
-// Chromium 자체 UI 언어 리소스(.lproj) 중 앱이 쓰는 것만 남기고 제거.
-// (앱 UI는 자체 i18n.js 사용 → Chromium 기본 메뉴 로캘만 영향, en 폴백)
+// electron-builder afterPack 훅 (macOS):
+//  1) Chromium 자체 UI 언어 리소스(.lproj) 중 앱이 쓰는 것만 남기고 제거
+//     (앱 UI는 자체 i18n.js 사용 → Chromium 기본 메뉴 로캘만 영향, en 폴백)
+//  2) 내용 변경으로 무효화된 서명을 ad-hoc 으로 재서명
+//     → 코드서명 인증서 없이도 Apple Silicon 에서 "손상됨" 없이 실행 가능
 const fs = require('fs');
 const path = require('path');
+const { execFileSync } = require('child_process');
 
 const KEEP = new Set(['en', 'en_GB', 'Base', 'ko', 'ja', 'zh_CN', 'zh_TW']);
 
@@ -36,4 +39,14 @@ exports.default = async function afterPack(context) {
     removed++;
   }
   console.log(`  • afterPack: removed ${removed} extra Chromium locales (~${Math.round(freed / 1e6)}MB)`);
+
+  // 내용 변경 후 ad-hoc 재서명 (인증서 불필요). nested 부터 안쪽→바깥 순으로 --deep.
+  const appPath = path.join(context.appOutDir, `${appName}.app`);
+  try {
+    execFileSync('codesign', ['--force', '--deep', '--sign', '-', appPath], { stdio: 'pipe' });
+    execFileSync('codesign', ['--verify', '--deep', '--strict', appPath], { stdio: 'pipe' });
+    console.log('  • afterPack: ad-hoc re-signed the app bundle');
+  } catch (e) {
+    console.warn('  • afterPack: ad-hoc codesign failed:', e.message);
+  }
 };
