@@ -38,6 +38,12 @@
       "lrc-core.js",
       "build/icon.png"
     ],
+    "extraResources": [
+      { "from": "../LICENSE", "to": "licenses/LICENSE.txt" },
+      { "from": "../THIRD-PARTY-NOTICES.md", "to": "licenses/THIRD-PARTY-NOTICES.md" },
+      { "from": "node_modules/electron/dist/LICENSE", "to": "licenses/Electron-LICENSE.txt" },
+      { "from": "node_modules/electron/dist/LICENSES.chromium.html", "to": "licenses/LICENSES.chromium.html" }
+    ],
     "mac": {
       "target": [
         { "target": "dmg", "arch": ["arm64", "x64"] },

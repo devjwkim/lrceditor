@@ -124,4 +124,10 @@ Security: `contextIsolation` on, `nodeIntegration` off, CSP applied, file access
 
 ## License
 
-MIT
+This project's own code is licensed under the **MIT License** — see [LICENSE](LICENSE).
+
+Distributed binaries bundle the Electron runtime (Chromium, Node.js, V8, FFmpeg).
+Those components keep their own licenses (MIT, BSD-3-Clause, Apache-2.0, LGPL-2.1
+for FFmpeg, and many more). Full attributions are in
+[THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md), and the complete license texts
+are shipped inside each app under `Resources/licenses/`.
