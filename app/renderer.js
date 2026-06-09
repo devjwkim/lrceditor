@@ -250,9 +250,14 @@ audio.addEventListener('loadedmetadata', () => {
   durTimeEl.textContent = fmt(audio.duration);
 });
 audio.addEventListener('timeupdate', () => {
+  // 구간 반복: B 도달 시 A로 점프
+  if (loopA != null && loopB != null && loopB > loopA && audio.currentTime >= loopB) {
+    audio.currentTime = loopA;
+  }
   curTimeEl.textContent = fmt(audio.currentTime);
   if (!seeking) seek.value = audio.currentTime;
   highlightActive();
+  if (demoOpen) updateDemoLines();
 });
 audio.addEventListener('play', () => { playBtn.textContent = t('btn.pause'); });
 audio.addEventListener('pause', () => { playBtn.textContent = t('btn.play'); });
@@ -286,6 +291,11 @@ document.getElementById('demoMode').addEventListener('change', () => { lastActiv
 
 // 단축키
 document.addEventListener('keydown', (e) => {
+  if (demoOpen) {
+    if (e.code === 'Space') { e.preventDefault(); audio.paused ? audio.play() : audio.pause(); }
+    else if (e.key === 'Escape') { e.preventDefault(); closeDemo(); }
+    return;
+  }
   const editing = document.activeElement && document.activeElement.isContentEditable;
   if (editing) return;
   if (e.key === 's' || e.key === 'S') { e.preventDefault(); stampCurrent(); }
@@ -357,6 +367,83 @@ document.body.addEventListener('drop', async (e) => {
     }
   }
 });
+
+// ---------- 데모 플레이 (노래방 오버레이) ----------
+const demoOverlay = document.getElementById('demoOverlay');
+const dPlay = document.getElementById('dPlay');
+const dSeek = document.getElementById('dSeek');
+const dCur = document.getElementById('dCur');
+const dDur = document.getElementById('dDur');
+const dPrev = document.getElementById('dPrev');
+const dCurLine = document.getElementById('dCurLine');
+const dNext = document.getElementById('dNext');
+const dSetA = document.getElementById('dSetA');
+const dSetB = document.getElementById('dSetB');
+const dClearAB = document.getElementById('dClearAB');
+const dABInfo = document.getElementById('dABInfo');
+const dClose = document.getElementById('dClose');
+
+let demoOpen = false;
+let demoSeeking = false;
+let loopA = null, loopB = null;
+
+// 시간이 있는 가사만 시간순으로
+function timedLines() {
+  return state.lines.filter((l) => l.time != null && l.text).sort((a, b) => a.time - b.time);
+}
+
+function openDemo() {
+  if (!state.audioUrl || timedLines().length === 0) { setStatus(t('demo.noData')); return; }
+  demoOpen = true;
+  demoOverlay.hidden = false;
+  dSeek.max = audio.duration || 0;
+  dDur.textContent = fmt(audio.duration);
+  updateDemoLines();
+  audio.play();
+}
+
+function closeDemo() {
+  demoOpen = false;
+  demoOverlay.hidden = true;
+  audio.pause();
+}
+
+function updateDemoLines() {
+  if (!demoOpen) return;
+  const lines = timedLines();
+  const tc = audio.currentTime;
+  let idx = -1;
+  for (let i = 0; i < lines.length; i++) { if (lines[i].time <= tc + 1e-3) idx = i; }
+  dPrev.textContent = idx - 1 >= 0 ? lines[idx - 1].text : '';
+  dCurLine.textContent = idx >= 0 ? lines[idx].text : '';
+  dNext.textContent = (idx + 1) < lines.length ? lines[idx + 1].text : '';
+  dCur.textContent = fmt(tc);
+  if (!demoSeeking) dSeek.value = tc;
+}
+
+function updateLoopInfo() {
+  const on = loopA != null && loopB != null && loopB > loopA;
+  dSetA.classList.toggle('active', loopA != null);
+  dSetB.classList.toggle('active', loopB != null);
+  dABInfo.textContent =
+    (loopA != null ? 'A ' + fmt(loopA) : '') +
+    (loopB != null ? ' – B ' + fmt(loopB) : '') +
+    (on ? ' ↺' : '');
+}
+
+document.getElementById('demoPlay').addEventListener('click', openDemo);
+dClose.addEventListener('click', closeDemo);
+dPlay.addEventListener('click', () => { audio.paused ? audio.play() : audio.pause(); });
+dSeek.addEventListener('input', () => { demoSeeking = true; dCur.textContent = fmt(parseFloat(dSeek.value)); });
+dSeek.addEventListener('change', () => { seekTo(parseFloat(dSeek.value)); demoSeeking = false; });
+dSetA.addEventListener('click', () => { loopA = audio.currentTime; if (loopB != null && loopB <= loopA) loopB = null; updateLoopInfo(); });
+dSetB.addEventListener('click', () => { loopB = audio.currentTime; if (loopA == null || loopA >= loopB) loopA = 0; updateLoopInfo(); });
+dClearAB.addEventListener('click', () => { loopA = loopB = null; updateLoopInfo(); });
+
+// 데모 재생 버튼 아이콘 동기화
+function syncDemoPlayIcon() { dPlay.textContent = audio.paused ? '▶' : '⏸'; }
+audio.addEventListener('play', syncDemoPlayIcon);
+audio.addEventListener('pause', syncDemoPlayIcon);
 
 // ---------- 언어팩 ----------
 // 정적 요소(data-i18n)·툴팁(data-i18n-title)·동적 요소에 현재 언어 적용

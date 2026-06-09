@@ -53,6 +53,7 @@ html, body {
 .controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .controls .rate { margin-left: auto; font-size: 12px; color: var(--muted); }
 .fileBtns { display: flex; gap: 8px; margin-top: auto; }
+.demoPlayBtn { width: 100%; padding: 10px; font-size: 14px; }
 
 /* 우측 편집기 */
 .editor { flex: 1; display: flex; flex-direction: column; background: var(--bg); }
@@ -106,3 +107,24 @@ kbd {
   background: var(--panel2); border: 1px solid var(--line); border-bottom-width: 2px;
   border-radius: 4px; padding: 0 5px; font-size: 11px;
 }
+
+/* ---------- 데모 플레이 (노래방 오버레이) ---------- */
+.demo-overlay { position: fixed; inset: 0; z-index: 100; background: #0b0c0e; display: flex; flex-direction: column; }
+.demo-overlay[hidden] { display: none; }
+.demo-bar { display: flex; align-items: center; gap: 12px; padding: 12px 18px; background: #16181c; border-bottom: 1px solid var(--line); }
+.demo-seek { flex: 1; accent-color: var(--accent); }
+.demo-time { font-variant-numeric: tabular-nums; color: var(--muted); font-size: 13px; }
+.demo-loop { display: flex; align-items: center; gap: 6px; }
+.demo-ab { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; min-width: 40px; }
+.demo-btn { background: var(--panel2); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; font-size: 14px; cursor: pointer; }
+.demo-btn:hover { background: #3e4248; }
+.demo-btn.play { min-width: 46px; font-size: 16px; }
+.demo-btn.active { background: var(--accent); border-color: var(--accent2); color: #fff; }
+.demo-btn.close { margin-left: 4px; }
+
+.demo-stage { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px; padding: 24px 32px; text-align: center; overflow: hidden; }
+.demo-line { max-width: 92%; line-height: 1.3; word-break: keep-all; transition: color .15s, font-size .15s, opacity .15s; }
+.demo-line.current { font-size: clamp(30px, 5.2vw, 60px); font-weight: 800; color: #ffffff; text-shadow: 0 2px 18px rgba(79,140,255,.35); }
+/* 이전/다음 가사는 연하게 */
+.demo-line.prev, .demo-line.next { font-size: clamp(18px, 3vw, 30px); font-weight: 500; color: #5b626b; }
+.demo-line:empty { min-height: .2em; }

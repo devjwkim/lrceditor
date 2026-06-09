@@ -16,6 +16,8 @@ left, write time-synced lyrics on the right.
   - Add / delete lines, start a blank doc with `New LRC`, `Open` / `Save` LRC
   - **Demo mode** — highlight the current lyric line as playback moves
   - Independently **clear** mp3 / LRC and swap in different files
+- 🎤 **Demo play** — full-screen karaoke view showing previous / current / next lyric
+  (prev & next dimmed), with a playback bar, play・seek, and **A–B section loop**
 - 🌐 **Language pack** — UI in **English (default)**, **한국어**, **日本語**, **中文**; switch from the top-right selector (choice is remembered)
 - LRC format: standard line-level `[mm:ss.xx]` (word-level Enhanced LRC is planned)
 

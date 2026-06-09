@@ -51,6 +51,7 @@
         <button id="openMp3" data-i18n="btn.openMp3">Open mp3…</button>
         <button id="clearMp3" data-i18n="btn.clearMp3" data-i18n-title="tip.clearMp3">Clear mp3</button>
       </div>
+      <button id="demoPlay" class="primary demoPlayBtn" data-i18n="btn.demoPlay">🎤 Demo play</button>
     </section>
 
     <!-- 우측: lrc 편집기 -->
@@ -75,6 +76,28 @@
       <div class="hint"></div>
     </section>
   </main>
+
+  <!-- 노래방 스타일 데모 플레이 (전체화면 오버레이) -->
+  <div id="demoOverlay" class="demo-overlay" hidden>
+    <div class="demo-bar">
+      <button id="dPlay" class="demo-btn play">▶</button>
+      <span id="dCur" class="demo-time">00:00.00</span>
+      <input type="range" id="dSeek" class="demo-seek" min="0" max="100" step="0.01" value="0" />
+      <span id="dDur" class="demo-time">00:00.00</span>
+      <span class="demo-loop">
+        <button id="dSetA" class="demo-btn" data-i18n-title="demo.tipA">A</button>
+        <button id="dSetB" class="demo-btn" data-i18n-title="demo.tipB">B</button>
+        <button id="dClearAB" class="demo-btn" data-i18n-title="demo.loopClear">↺</button>
+        <span id="dABInfo" class="demo-ab"></span>
+      </span>
+      <button id="dClose" class="demo-btn close" data-i18n-title="demo.tipClose">✕</button>
+    </div>
+    <div class="demo-stage">
+      <div id="dPrev" class="demo-line prev"></div>
+      <div id="dCurLine" class="demo-line current"></div>
+      <div id="dNext" class="demo-line next"></div>
+    </div>
+  </div>
 
   <script src="i18n.js"></script>
   <script src="lrc-core.js"></script>
