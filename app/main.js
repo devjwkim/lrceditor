@@ -6,6 +6,9 @@ const fs = require('fs/promises');
 
 let mainWindow = null;
 
+// 런타임 아이콘 (Win/Linux 창 아이콘 · macOS dev 독 아이콘에 사용)
+const ICON_PATH = path.join(__dirname, 'build', 'icon.png');
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
@@ -13,6 +16,7 @@ function createWindow() {
     minWidth: 900,
     minHeight: 600,
     title: 'LRC EDITOR',
+    icon: ICON_PATH,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -53,6 +57,10 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  // macOS: 패키징 전 dev 실행에서도 독 아이콘이 보이도록 설정
+  if (process.platform === 'darwin' && app.dock) {
+    try { app.dock.setIcon(ICON_PATH); } catch { /* 아이콘 로드 실패는 무시 */ }
+  }
   createWindow();
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
