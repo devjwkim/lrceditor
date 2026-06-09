@@ -122,9 +122,15 @@ kbd {
 .demo-btn.active { background: var(--accent); border-color: var(--accent2); color: #fff; }
 .demo-btn.close { margin-left: 4px; }
 
-.demo-stage { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px; padding: 24px 32px; text-align: center; overflow: hidden; }
-.demo-line { max-width: 92%; line-height: 1.3; word-break: keep-all; transition: color .15s, font-size .15s, opacity .15s; }
-.demo-line.current { font-size: clamp(30px, 5.2vw, 60px); font-weight: 800; color: #ffffff; text-shadow: 0 2px 18px rgba(79,140,255,.35); }
-/* 이전/다음 가사는 연하게 */
-.demo-line.prev, .demo-line.next { font-size: clamp(18px, 3vw, 30px); font-weight: 500; color: #5b626b; }
-.demo-line:empty { min-height: .2em; }
+/* 슬롯 높이를 고정해 글자 길이가 변해도 세로가 흔들리지 않음 (이전1·현재1·다음2) */
+.demo-stage { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.4vh; padding: 16px 32px; overflow: hidden; }
+.demo-line { width: 100%; max-width: 1000px; display: flex; align-items: center; justify-content: center; overflow: hidden; text-align: center; flex: none; }
+.demo-line.prev, .demo-line.next { height: 13vh; }
+.demo-line.current { height: 22vh; }
+.demo-line .dt { display: block; line-height: 1.25; word-break: keep-all; }
+.demo-line.current .dt { font-weight: 800; color: #ffffff; text-shadow: 0 2px 18px rgba(79,140,255,.35); }
+/* 이전/다음 가사는 같은 크기, 연한 색 */
+.demo-line.prev .dt, .demo-line.next .dt { font-weight: 500; color: #5b626b; }
+/* 줄이 바뀔 때 자연스럽게 롤업 */
+@keyframes demoRoll { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+.demo-line .dt.rolling { animation: demoRoll .33s ease both; }

@@ -376,7 +376,8 @@ const dCur = document.getElementById('dCur');
 const dDur = document.getElementById('dDur');
 const dPrev = document.getElementById('dPrev');
 const dCurLine = document.getElementById('dCurLine');
-const dNext = document.getElementById('dNext');
+const dNext1 = document.getElementById('dNext1');
+const dNext2 = document.getElementById('dNext2');
 const dSetA = document.getElementById('dSetA');
 const dSetB = document.getElementById('dSetB');
 const dClearAB = document.getElementById('dClearAB');
@@ -386,6 +387,25 @@ const dClose = document.getElementById('dClose');
 let demoOpen = false;
 let demoSeeking = false;
 let loopA = null, loopB = null;
+let lastDemoIdx = -99;
+const D_FONT_CUR = 52, D_FONT_SIDE = 30, D_FONT_MIN = 16; // px
+
+// 슬롯 높이는 CSS로 고정 → 텍스트가 길어 넘치면 폰트를 줄여 높이 유지
+function fitFont(span, maxPx) {
+  const box = span.parentElement;
+  let f = maxPx;
+  span.style.fontSize = f + 'px';
+  let guard = 40;
+  while (span.scrollHeight > box.clientHeight && f > D_FONT_MIN && guard-- > 0) {
+    f -= 2; span.style.fontSize = f + 'px';
+  }
+}
+
+function setDemoLine(span, text, maxPx, animate) {
+  span.textContent = text || '';
+  fitFont(span, maxPx);
+  if (animate && text) { span.classList.remove('rolling'); void span.offsetWidth; span.classList.add('rolling'); }
+}
 
 // 시간이 있는 가사만 시간순으로
 function timedLines() {
@@ -395,6 +415,7 @@ function timedLines() {
 function openDemo() {
   if (!state.audioUrl || timedLines().length === 0) { setStatus(t('demo.noData')); return; }
   demoOpen = true;
+  lastDemoIdx = -99;
   demoOverlay.hidden = false;
   dSeek.max = audio.duration || 0;
   dDur.textContent = fmt(audio.duration);
@@ -414,12 +435,20 @@ function updateDemoLines() {
   const tc = audio.currentTime;
   let idx = -1;
   for (let i = 0; i < lines.length; i++) { if (lines[i].time <= tc + 1e-3) idx = i; }
-  dPrev.textContent = idx - 1 >= 0 ? lines[idx - 1].text : '';
-  dCurLine.textContent = idx >= 0 ? lines[idx].text : '';
-  dNext.textContent = (idx + 1) < lines.length ? lines[idx + 1].text : '';
   dCur.textContent = fmt(tc);
   if (!demoSeeking) dSeek.value = tc;
+  if (idx === lastDemoIdx) return;               // 같은 줄이면 갱신/애니메이션 안 함
+  const advanced = idx === lastDemoIdx + 1;       // 한 줄 자연 진행일 때만 롤업(탐색 점프는 즉시)
+  lastDemoIdx = idx;
+  const at = (i) => (i >= 0 && i < lines.length) ? lines[i].text : '';
+  setDemoLine(dPrev, at(idx - 1), D_FONT_SIDE, advanced);
+  setDemoLine(dCurLine, idx >= 0 ? lines[idx].text : '', D_FONT_CUR, advanced);
+  setDemoLine(dNext1, at(idx + 1), D_FONT_SIDE, advanced);
+  setDemoLine(dNext2, at(idx + 2), D_FONT_SIDE, advanced);
 }
+
+// 창 크기 변경 시 고정 높이(vh)가 바뀌므로 폰트 재맞춤
+window.addEventListener('resize', () => { if (demoOpen) { lastDemoIdx = -99; updateDemoLines(); } });
 
 function updateLoopInfo() {
   const on = loopA != null && loopB != null && loopB > loopA;
