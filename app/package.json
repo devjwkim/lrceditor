@@ -6,7 +6,7 @@
   "scripts": {
     "start": "electron .",
     "smoke": "SMOKE=1 electron .",
-    "test": "node test/lrc-core.test.js && node test/i18n.test.js && node test/packaging.test.js",
+    "test": "node test/lrc-core.test.js && node test/i18n.test.js && node test/packaging.test.js && node test/id3.test.js",
     "dist:mac": "electron-builder --mac",
     "dist:win": "electron-builder --win",
     "dist:linux": "electron-builder --linux",
@@ -39,6 +39,7 @@
       "renderer.js",
       "lrc-core.js",
       "i18n.js",
+      "id3.js",
       "build/icon.png"
     ],
     "extraResources": [

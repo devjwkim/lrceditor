@@ -101,6 +101,13 @@ select { background: var(--panel2); color: var(--text); border: 1px solid var(--
 .row.active .txt { color: var(--hi); font-weight: 600; }
 .row .del { color: var(--muted); border: none; background: none; padding: 2px 6px; font-size: 15px; }
 .row .del:hover { color: #ff6b6b; background: none; }
+/* 드래그 핸들 + 순서 변경 표시 */
+.row .drag { flex: none; cursor: grab; color: var(--muted); font-size: 13px; padding: 0 2px; -webkit-user-select: none; user-select: none; opacity: .5; }
+.row:hover .drag { opacity: 1; }
+.row .drag:active { cursor: grabbing; }
+.row.dragging { opacity: .45; }
+.row.drop-before { box-shadow: inset 0 2px 0 0 var(--accent); }
+.row.drop-after { box-shadow: inset 0 -2px 0 0 var(--accent); }
 
 .hint { color: var(--muted); font-size: 12px; padding: 10px 2px 0; }
 kbd {
@@ -134,3 +141,48 @@ kbd {
 /* 줄이 바뀔 때 자연스럽게 롤업 */
 @keyframes demoRoll { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 .demo-line .dt.rolling { animation: demoRoll .33s ease both; }
+
+/* ---------- 여러 줄 추가 모달 ---------- */
+.modal-overlay { position: fixed; inset: 0; z-index: 90; background: rgba(0,0,0,.55); display: flex; align-items: center; justify-content: center; padding: 28px; }
+.modal-overlay[hidden] { display: none; }
+.modal { width: min(880px, 96vw); max-height: 88vh; display: flex; flex-direction: column; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; box-shadow: 0 18px 60px rgba(0,0,0,.5); }
+.modal-head { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+.modal-head strong { font-size: 14px; }
+.modal-x { background: none; border: none; color: var(--muted); font-size: 16px; padding: 2px 8px; }
+.modal-x:hover { color: var(--text); background: none; }
+.modal-body { display: flex; gap: 12px; padding: 14px 16px; min-height: 0; flex: 1; }
+#multiInput { flex: 1; min-height: 320px; resize: none; background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; font-size: 14px; line-height: 1.5; outline: none; }
+#multiInput:focus { border-color: var(--accent); }
+.modal-preview { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.modal-preview-head { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+.preview-list { list-style: none; margin: 0; padding: 0; flex: 1; overflow: auto; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; }
+.prev-row { display: flex; align-items: center; gap: 10px; padding: 5px 8px; border-bottom: 1px solid rgba(255,255,255,.04); }
+.prev-row .prev-ts { flex: none; width: 78px; text-align: center; font-variant-numeric: tabular-nums; font-size: 12px; color: var(--muted); background: var(--panel); border-radius: 5px; padding: 2px 0; }
+.prev-row .prev-tx { flex: 1; font-size: 14px; word-break: keep-all; }
+.preview-list:empty::before { content: ''; }
+.modal-hint { color: var(--muted); font-size: 12px; padding: 0 16px 10px; }
+.modal-foot { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--line); }
+
+/* ---------- 창 전체 드롭 오버레이 ---------- */
+.drop-overlay { position: fixed; inset: 0; z-index: 200; background: rgba(11,12,14,.72); display: flex; align-items: center; justify-content: center; pointer-events: none; }
+.drop-overlay[hidden] { display: none; }
+.drop-overlay-box { border: 3px dashed var(--accent); border-radius: 18px; padding: 36px 54px; text-align: center; color: var(--text); background: rgba(79,140,255,.08); }
+.drop-overlay-icon { font-size: 44px; color: var(--accent); margin-bottom: 8px; line-height: 1; }
+.drop-overlay-box div:last-child { font-size: 16px; color: var(--text); }
+
+/* ---------- mp3 태그 메타 (재생기) ---------- */
+.trackMeta { display: flex; gap: 12px; align-items: center; min-height: 18px; }
+.coverArt { width: 68px; height: 68px; border-radius: 8px; object-fit: cover; flex: none; border: 1px solid var(--line); background: var(--panel2); }
+.metaText { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 1px; }
+.m-title { font-size: 14px; font-weight: 600; color: var(--text); word-break: break-all; }
+.m-artist { font-size: 12px; color: var(--text); word-break: break-all; }
+.m-album { font-size: 12px; color: var(--muted); word-break: break-all; }
+.trackName { font-size: 11px; color: var(--muted); word-break: break-all; }
+.m-title:empty, .m-artist:empty, .m-album:empty { display: none; }
+
+/* 데모 플레이 상단 메타 */
+.demo-meta { display: flex; align-items: center; gap: 9px; min-width: 0; max-width: 34%; }
+.demo-cover { width: 38px; height: 38px; border-radius: 6px; object-fit: cover; flex: none; border: 1px solid var(--line); }
+.demo-meta-text { display: flex; flex-direction: column; min-width: 0; }
+.demo-title { font-size: 13px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.demo-artist { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

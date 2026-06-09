@@ -3,6 +3,7 @@
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs/promises');
+const id3 = require('./id3');
 
 let mainWindow = null;
 
@@ -108,6 +109,19 @@ ipcMain.handle('file:readAudio', async (_evt, filePath) => {
 // 경로로 lrc 텍스트 읽기 (드래그앤드롭 등)
 ipcMain.handle('file:readLrc', async (_evt, filePath) => {
   return fs.readFile(filePath, 'utf8');
+});
+
+// mp3 ID3 태그 읽기 → {title, artist, album, pictureDataUrl}
+ipcMain.handle('file:readTags', async (_evt, filePath) => {
+  try {
+    const buf = await fs.readFile(filePath);
+    const tg = id3.parse(buf);
+    const pictureDataUrl = tg.picture
+      ? `data:${tg.picture.mime};base64,${tg.picture.data.toString('base64')}` : null;
+    return { title: tg.title || null, artist: tg.artist || null, album: tg.album || null, pictureDataUrl };
+  } catch {
+    return { title: null, artist: null, album: null, pictureDataUrl: null };
+  }
 });
 
 // lrc 저장 대화상자

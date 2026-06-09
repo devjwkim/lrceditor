@@ -7,6 +7,7 @@ const state = {
   lrcPath: null,
   audioUrl: null,
   audioName: null,    // 로드된 mp3 파일명 (저장 기본 파일명에 사용)
+  tags: null,         // { title, artist, album, pictureDataUrl }
 };
 
 const audio = document.getElementById('audio');
@@ -20,6 +21,18 @@ const t = (key, params) => window.I18N.t(key, params);
 
 // ---------- 렌더링 ----------
 const linesEl = document.getElementById('lines');
+let dragIndex = -1; // 드래그로 순서 변경 중인 줄 인덱스
+
+// from 위치의 줄을 to 위치(제거 전 기준 삽입 인덱스)로 이동
+function moveLine(from, to) {
+  const item = state.lines[from];
+  state.lines.splice(from, 1);
+  if (to > from) to -= 1;                       // 제거로 인덱스가 한 칸 당겨짐
+  to = Math.max(0, Math.min(to, state.lines.length));
+  state.lines.splice(to, 0, item);
+  state.selected = to;
+  render();
+}
 
 function render() {
   linesEl.innerHTML = '';
@@ -27,6 +40,40 @@ function render() {
     const li = document.createElement('li');
     li.className = 'row' + (i === state.selected ? ' selected' : '');
     li.dataset.idx = i;
+
+    // 드래그 핸들로 줄 순서 변경 (편집과 충돌 방지)
+    const handle = document.createElement('span');
+    handle.className = 'drag';
+    handle.textContent = '⠿';
+    handle.title = t('tip.drag');
+    handle.draggable = true;
+    handle.addEventListener('dragstart', (e) => {
+      dragIndex = i;
+      li.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', String(i));
+      e.dataTransfer.setDragImage(li, 16, 12);
+    });
+    handle.addEventListener('dragend', () => {
+      dragIndex = -1;
+      linesEl.querySelectorAll('.row').forEach((r) => r.classList.remove('dragging', 'drop-before', 'drop-after'));
+    });
+    li.addEventListener('dragover', (e) => {
+      if (dragIndex < 0) return;
+      e.preventDefault();
+      const rect = li.getBoundingClientRect();
+      const after = (e.clientY - rect.top) > rect.height / 2;
+      linesEl.querySelectorAll('.row').forEach((r) => r.classList.remove('drop-before', 'drop-after'));
+      if (i !== dragIndex) li.classList.add(after ? 'drop-after' : 'drop-before');
+    });
+    li.addEventListener('drop', (e) => {
+      if (dragIndex < 0) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const rect = li.getBoundingClientRect();
+      const after = (e.clientY - rect.top) > rect.height / 2;
+      moveLine(dragIndex, i + (after ? 1 : 0));
+    });
 
     const ts = document.createElement('span');
     ts.className = 'ts' + (row.time == null ? ' empty' : '');
@@ -127,7 +174,7 @@ function render() {
 
     li.addEventListener('click', () => selectRow(i));
 
-    li.append(ts, txt, del);
+    li.append(handle, ts, txt, del);
     linesEl.appendChild(li);
   });
   highlightActive();
@@ -202,6 +249,23 @@ async function loadAudioFromPath(filePath, name) {
   audio.src = state.audioUrl;
   document.getElementById('trackName').textContent = state.audioName;
   setStatus(t('status.audioLoaded', { name: state.audioName }));
+  applyTags(filePath); // ID3 태그 비동기 로드 (실패해도 재생엔 영향 없음)
+}
+
+// mp3 태그 읽어 메타 UI 갱신
+async function applyTags(filePath) {
+  try { state.tags = await window.api.readTags(filePath); }
+  catch { state.tags = null; }
+  updateMetaUI();
+}
+function updateMetaUI() {
+  const tg = state.tags || {};
+  document.getElementById('mTitle').textContent = tg.title || '';
+  document.getElementById('mArtist').textContent = tg.artist || '';
+  document.getElementById('mAlbum').textContent = tg.album || '';
+  const cover = document.getElementById('coverArt');
+  if (tg.pictureDataUrl) { cover.src = tg.pictureDataUrl; cover.hidden = false; }
+  else { cover.removeAttribute('src'); cover.hidden = true; }
 }
 
 function seekTo(sec) {
@@ -216,6 +280,8 @@ function clearAudio() {
   audio.load();
   if (state.audioUrl) { URL.revokeObjectURL(state.audioUrl); state.audioUrl = null; }
   state.audioName = null;
+  state.tags = null;
+  updateMetaUI();
   document.getElementById('trackName').textContent = t('player.noFile');
   seek.value = 0; seek.max = 100;
   curTimeEl.textContent = fmt(0);
@@ -283,20 +349,75 @@ function stampCurrent() {
 
 document.getElementById('stampBtn').addEventListener('click', stampCurrent);
 document.getElementById('addLine').addEventListener('click', () => {
-  state.lines.push({ time: null, text: '' });
-  state.selected = state.lines.length - 1;
+  // 선택된 줄이 있으면 그 아래, 없으면 맨 끝
+  const at = (state.selected >= 0 && state.selected < state.lines.length) ? state.selected + 1 : state.lines.length;
+  state.lines.splice(at, 0, { time: null, text: '' });
+  state.selected = at;
   render();
+  const sel = linesEl.querySelector('.row.selected');
+  if (sel) sel.scrollIntoView({ block: 'nearest' });
 });
+
+// ---------- 여러 줄 추가 모달 ----------
+const multiModal = document.getElementById('multiModal');
+const multiInput = document.getElementById('multiInput');
+const multiPreview = document.getElementById('multiPreview');
+const multiCount = document.getElementById('multiCount');
+const multiAdd = document.getElementById('multiAdd');
+
+function multiLines() {
+  return multiInput.value.split(/\r?\n/).map((s) => s.trim()).filter((s) => s.length > 0);
+}
+function updateMultiPreview() {
+  const lines = multiLines();
+  multiPreview.innerHTML = '';
+  for (const tx of lines) {
+    const li = document.createElement('li');
+    li.className = 'prev-row';
+    const ts = document.createElement('span'); ts.className = 'prev-ts'; ts.textContent = '--:--.--';
+    const tt = document.createElement('span'); tt.className = 'prev-tx'; tt.textContent = tx;
+    li.append(ts, tt);
+    multiPreview.appendChild(li);
+  }
+  multiCount.textContent = t('multi.preview', { n: lines.length });
+  multiAdd.textContent = t('multi.add', { n: lines.length });
+  multiAdd.disabled = lines.length === 0;
+}
+function openMulti() { multiInput.value = ''; updateMultiPreview(); multiModal.hidden = false; multiInput.focus(); }
+function closeMulti() { multiModal.hidden = true; }
+function commitMulti() {
+  const lines = multiLines();
+  if (!lines.length) return;
+  // 선택된 줄이 있으면 그 아래에 삽입, 없으면 맨 끝
+  const at = (state.selected >= 0 && state.selected < state.lines.length) ? state.selected + 1 : state.lines.length;
+  state.lines.splice(at, 0, ...lines.map((tx) => ({ time: null, text: tx }))); // 시간은 선택 → null
+  state.selected = at;          // 새로 추가된 첫 줄 선택
+  render();
+  closeMulti();
+  setStatus(t('multi.added', { n: lines.length }));
+}
+document.getElementById('addMulti').addEventListener('click', openMulti);
+document.getElementById('multiClose').addEventListener('click', closeMulti);
+document.getElementById('multiCancel').addEventListener('click', closeMulti);
+multiAdd.addEventListener('click', commitMulti);
+multiInput.addEventListener('input', updateMultiPreview);
+multiModal.addEventListener('mousedown', (e) => { if (e.target === multiModal) closeMulti(); }); // 바깥 클릭 닫기
 document.getElementById('demoMode').addEventListener('change', () => { lastActive = -1; highlightActive(); });
 
 // 단축키
 document.addEventListener('keydown', (e) => {
+  if (!multiModal.hidden) {                         // 여러 줄 모달 열림
+    if (e.key === 'Escape') { e.preventDefault(); closeMulti(); }
+    else if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); commitMulti(); }
+    return;
+  }
   if (demoOpen) {
     if (e.code === 'Space') { e.preventDefault(); audio.paused ? audio.play() : audio.pause(); }
     else if (e.key === 'Escape') { e.preventDefault(); closeDemo(); }
     return;
   }
-  const editing = document.activeElement && document.activeElement.isContentEditable;
+  const ae = document.activeElement;
+  const editing = ae && (ae.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(ae.tagName));
   if (editing) return;
   if (e.key === 's' || e.key === 'S') { e.preventDefault(); stampCurrent(); }
   else if (e.code === 'Space') { e.preventDefault(); audio.paused ? audio.play() : audio.pause(); }
@@ -344,26 +465,40 @@ document.getElementById('clearLrc').addEventListener('click', () => {
   clearLrc();
 });
 
-// ---------- 드래그앤드롭 ----------
-const dropZone = document.getElementById('dropZone');
-['dragenter', 'dragover'].forEach((ev) =>
-  dropZone.addEventListener(ev, (e) => { e.preventDefault(); dropZone.classList.add('dragover'); }));
-['dragleave', 'drop'].forEach((ev) =>
-  dropZone.addEventListener(ev, (e) => { e.preventDefault(); dropZone.classList.remove('dragover'); }));
+// ---------- 드래그앤드롭 (창 어디에 놔도 확장자로 자동 분기) ----------
+const dropOverlay = document.getElementById('dropOverlay');
+let dragDepth = 0; // 자식 요소 위를 지날 때 dragleave 깜빡임 방지용 카운터
 
-document.body.addEventListener('dragover', (e) => e.preventDefault());
-document.body.addEventListener('drop', async (e) => {
+function dragHasFiles(e) {
+  return e.dataTransfer && Array.from(e.dataTransfer.types || []).includes('Files');
+}
+window.addEventListener('dragenter', (e) => {
+  if (!dragHasFiles(e)) return;
   e.preventDefault();
-  dropZone.classList.remove('dragover');
-  for (const file of e.dataTransfer.files) {
+  dragDepth++;
+  dropOverlay.hidden = false;
+});
+window.addEventListener('dragover', (e) => { if (dragHasFiles(e)) e.preventDefault(); });
+window.addEventListener('dragleave', (e) => {
+  if (!dragHasFiles(e)) return;
+  e.preventDefault();
+  dragDepth = Math.max(0, dragDepth - 1);
+  if (dragDepth === 0) dropOverlay.hidden = true;
+});
+window.addEventListener('drop', async (e) => {
+  e.preventDefault();
+  dragDepth = 0;
+  dropOverlay.hidden = true;
+  const files = Array.from(e.dataTransfer.files || []);
+  for (const file of files) {
     const p = window.api.pathForFile(file);
     const lower = (file.name || p).toLowerCase();
     if (lower.endsWith('.lrc') || lower.endsWith('.txt')) {
       const content = await window.api.readLrc(p);
       state.lines = parseLrc(content); state.lrcPath = p; state.selected = 0; render();
-      setStatus(t('status.lrcLoaded', { name: file.name }));
+      setStatus(t('status.lrcLoaded', { name: file.name }));   // lrc → 편집기
     } else {
-      await loadAudioFromPath(p, file.name);
+      await loadAudioFromPath(p, file.name);                    // mp3 등 → 재생기
     }
   }
 });
@@ -419,8 +554,19 @@ function openDemo() {
   demoOverlay.hidden = false;
   dSeek.max = audio.duration || 0;
   dDur.textContent = fmt(audio.duration);
+  updateDemoMeta();
   updateDemoLines();
   audio.play();
+}
+
+// 데모 상단의 앨범아트/제목/아티스트
+function updateDemoMeta() {
+  const tg = state.tags || {};
+  const dc = document.getElementById('dCover');
+  if (tg.pictureDataUrl) { dc.src = tg.pictureDataUrl; dc.hidden = false; }
+  else { dc.removeAttribute('src'); dc.hidden = true; }
+  document.getElementById('dTitle').textContent = tg.title || state.audioName || '';
+  document.getElementById('dArtist').textContent = [tg.artist, tg.album].filter(Boolean).join(' · ');
 }
 
 function closeDemo() {
@@ -479,6 +625,7 @@ audio.addEventListener('pause', syncDemoPlayIcon);
 function applyI18n() {
   document.querySelectorAll('[data-i18n]').forEach((el) => { el.textContent = t(el.dataset.i18n); });
   document.querySelectorAll('[data-i18n-title]').forEach((el) => { el.title = t(el.dataset.i18nTitle); });
+  document.querySelectorAll('[data-i18n-ph]').forEach((el) => { el.placeholder = t(el.dataset.i18nPh); });
   // 힌트는 kbd 태그 포함이라 별도 처리
   const hintEl = document.querySelector('.hint');
   if (hintEl) {
@@ -495,6 +642,7 @@ function applyI18n() {
   playBtn.textContent = audio.paused ? t('btn.play') : t('btn.pause');
   // 시작 안내(아직 동적 상태 메시지가 없을 때만)
   if (!statusDirty) setStatus(t('status.initial'), false);
+  if (multiModal && !multiModal.hidden) updateMultiPreview(); // 모달 열린 채 언어 변경 시 라벨/카운트 갱신
   updateStampBtn();
 }
 

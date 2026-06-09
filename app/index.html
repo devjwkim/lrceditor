@@ -8,6 +8,14 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
+  <!-- 창 전체 드롭 영역 (드래그 중에만 표시) -->
+  <div id="dropOverlay" class="drop-overlay" hidden>
+    <div class="drop-overlay-box">
+      <div class="drop-overlay-icon">⤓</div>
+      <div data-i18n="drop.overlay">Drop files anywhere</div>
+    </div>
+  </div>
+
   <header class="topbar">
     <strong>LRC EDITOR</strong>
     <span id="statusText" class="status"></span>
@@ -22,7 +30,16 @@
     <section class="pane player" id="dropZone">
       <h2 data-i18n="player.title">🎵 Player</h2>
       <div class="dropHint" id="dropHint" data-i18n="player.dropHint">Drop mp3 / lrc here</div>
-      <div class="trackName" id="trackName"></div>
+
+      <div class="trackMeta">
+        <img id="coverArt" class="coverArt" alt="" hidden />
+        <div class="metaText">
+          <div id="mTitle" class="m-title"></div>
+          <div id="mArtist" class="m-artist"></div>
+          <div id="mAlbum" class="m-album"></div>
+          <div id="trackName" class="trackName"></div>
+        </div>
+      </div>
 
       <audio id="audio"></audio>
 
@@ -69,6 +86,7 @@
       <div class="stampBar">
         <button id="stampBtn" class="primary" data-i18n="btn.stamp">⏱ Stamp time (S)</button>
         <button id="addLine" data-i18n="btn.addLine">+ Add line</button>
+        <button id="addMulti" data-i18n="btn.addMulti">+ Add multi line</button>
         <label class="demoToggle"><input type="checkbox" id="demoMode" /> <span data-i18n="label.demo">Demo (follow lyrics)</span></label>
       </div>
 
@@ -80,6 +98,13 @@
   <!-- 노래방 스타일 데모 플레이 (전체화면 오버레이) -->
   <div id="demoOverlay" class="demo-overlay" hidden>
     <div class="demo-bar">
+      <div class="demo-meta">
+        <img id="dCover" class="demo-cover" alt="" hidden />
+        <div class="demo-meta-text">
+          <span id="dTitle" class="demo-title"></span>
+          <span id="dArtist" class="demo-artist"></span>
+        </div>
+      </div>
       <button id="dPlay" class="demo-btn play">▶</button>
       <span id="dCur" class="demo-time">00:00.00</span>
       <input type="range" id="dSeek" class="demo-seek" min="0" max="100" step="0.01" value="0" />
@@ -97,6 +122,28 @@
       <div class="demo-line current"><span id="dCurLine" class="dt"></span></div>
       <div class="demo-line next"><span id="dNext1" class="dt"></span></div>
       <div class="demo-line next"><span id="dNext2" class="dt"></span></div>
+    </div>
+  </div>
+
+  <!-- 여러 줄 추가 모달 -->
+  <div id="multiModal" class="modal-overlay" hidden>
+    <div class="modal">
+      <div class="modal-head">
+        <strong data-i18n="multi.title">Add multiple lines</strong>
+        <button id="multiClose" class="modal-x">✕</button>
+      </div>
+      <div class="modal-body">
+        <textarea id="multiInput" data-i18n-ph="multi.placeholder" spellcheck="false"></textarea>
+        <div class="modal-preview">
+          <div class="modal-preview-head" id="multiCount"></div>
+          <ol id="multiPreview" class="preview-list"></ol>
+        </div>
+      </div>
+      <div class="modal-hint" data-i18n="multi.hint"></div>
+      <div class="modal-foot">
+        <button id="multiCancel" data-i18n="multi.cancel">Cancel</button>
+        <button id="multiAdd" class="primary" data-i18n="multi.add">Add lines</button>
+      </div>
     </div>
   </div>
 
