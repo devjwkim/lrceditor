@@ -35,13 +35,12 @@ function createWindow() {
     });
     mainWindow.webContents.on('did-finish-load', async () => {
       try {
-        // 샘플 로드 IPC + LRC 파싱이 렌더러에서 동작하는지 검증
-        const n = await mainWindow.webContents.executeJavaScript(`(async () => {
-          const r = await window.api.loadSample();
-          const lines = window.LRC.parseLrc(r.lrc);
-          return { audioBytes: r.audio.byteLength, lines: lines.length };
+        // 렌더러에서 LRC 공용 로직이 로드/동작하는지 검증
+        const n = await mainWindow.webContents.executeJavaScript(`(() => {
+          const lines = window.LRC.parseLrc('[00:00.00]a\\n[00:01.50]b');
+          return { lines: lines.length, t: window.LRC.parseTimeStr('01:23.45') };
         })()`);
-        console.log('[smoke] sample audioBytes=' + n.audioBytes + ' parsedLines=' + n.lines);
+        console.log('[smoke] parsedLines=' + n.lines + ' parseTimeStr=' + n.t);
         console.log('[smoke] OK');
       } catch (err) {
         console.error('[smoke] FAIL', err && err.message);
@@ -98,25 +97,6 @@ ipcMain.handle('file:readAudio', async (_evt, filePath) => {
 // 경로로 lrc 텍스트 읽기 (드래그앤드롭 등)
 ipcMain.handle('file:readLrc', async (_evt, filePath) => {
   return fs.readFile(filePath, 'utf8');
-});
-
-// 동봉된 샘플(../sample) 로드 → {audio, audioName, lrc, lrcPath}
-ipcMain.handle('sample:load', async () => {
-  const dir = path.join(__dirname, '..', 'sample');
-  const mp3 = path.join(dir, 'cherry.mp3');
-  const lrc = path.join(dir, 'cherry.lrc');
-  try {
-    const buf = await fs.readFile(mp3);
-    const lrcText = await fs.readFile(lrc, 'utf8');
-    return {
-      audio: buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength),
-      audioName: 'cherry.mp3',
-      lrc: lrcText,
-      lrcPath: lrc,
-    };
-  } catch {
-    return null;
-  }
 });
 
 // lrc 저장 대화상자

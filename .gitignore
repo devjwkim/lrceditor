@@ -4,11 +4,12 @@
 !/README.md
 !/app/
 
-# app 내부 — 빌드/의존성 산출물 제외
+# app 내부 — 빌드/의존성 산출물 제외 (build/ 는 아이콘 소스라 추적함)
 app/node_modules/
 app/dist/
-app/build/
 app/out/
+# 훅이 app/ 에서 실행되며 생성된 자동 로그(노이즈) — 정식 메모리는 루트 memory/
+app/memory/
 
 # 공통
 **/.DS_Store

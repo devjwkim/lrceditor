@@ -34,18 +34,17 @@ node app/test/lrc-core.test.js
 SMOKE=1 npm --prefix app start
 ```
 
-동작: 앱 부팅 → 렌더러 로드 → `window.api.loadSample()` IPC 호출 → `window.LRC.parseLrc()` 검증 후 자동 종료.
+동작: 앱 부팅 → 렌더러 로드 → `window.LRC.parseLrc()` / `parseTimeStr()` 검증 후 자동 종료.
 
 출력:
 ```
-[smoke] sample audioBytes=8333303 parsedLines=20
+[smoke] parsedLines=2 parseTimeStr=83.45
 [smoke] OK
 ```
 
 검증 항목:
 - ✅ 메인/preload/렌더러 로드 시 예외 없음 (`render-process-gone` 미발생)
-- ✅ 파일 IPC(`sample:load`)가 mp3 전체 바이트(8,333,303) 정상 반환 — 파일 크기와 일치
-- ✅ 브라우저 컨텍스트에서 `lrc-core.js` 로드 및 파싱 동작(20줄)
+- ✅ 브라우저 컨텍스트에서 `lrc-core.js` 로드 및 파싱/시간검증 동작
 - ✅ CSP·contextIsolation 설정 하에서 렌더러 정상 구동
 
 ## 수동 확인 권장 (GUI 상호작용 — 자동화 범위 밖)

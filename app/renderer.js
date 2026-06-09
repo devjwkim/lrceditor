@@ -6,6 +6,7 @@ const state = {
   selected: -1,
   lrcPath: null,
   audioUrl: null,
+  audioName: null,    // 로드된 mp3 파일명 (저장 기본 파일명에 사용)
 };
 
 const audio = document.getElementById('audio');
@@ -189,18 +190,10 @@ async function loadAudioFromPath(filePath, name) {
   const blob = new Blob([ab], { type: 'audio/mpeg' });
   if (state.audioUrl) URL.revokeObjectURL(state.audioUrl);
   state.audioUrl = URL.createObjectURL(blob);
+  state.audioName = name || filePath.split(/[\\/]/).pop();
   audio.src = state.audioUrl;
-  document.getElementById('trackName').textContent = name || filePath;
-  setStatus('오디오 로드됨: ' + (name || filePath));
-}
-
-function loadAudioFromBuffer(ab, name) {
-  const blob = new Blob([ab], { type: 'audio/mpeg' });
-  if (state.audioUrl) URL.revokeObjectURL(state.audioUrl);
-  state.audioUrl = URL.createObjectURL(blob);
-  audio.src = state.audioUrl;
-  document.getElementById('trackName').textContent = name;
-  setStatus('오디오 로드됨: ' + name);
+  document.getElementById('trackName').textContent = state.audioName;
+  setStatus('오디오 로드됨: ' + state.audioName);
 }
 
 function seekTo(sec) {
@@ -214,6 +207,7 @@ function clearAudio() {
   audio.removeAttribute('src');
   audio.load();
   if (state.audioUrl) { URL.revokeObjectURL(state.audioUrl); state.audioUrl = null; }
+  state.audioName = null;
   document.getElementById('trackName').textContent = '로드된 파일 없음';
   seek.value = 0; seek.max = 100;
   curTimeEl.textContent = fmt(0);
@@ -305,10 +299,16 @@ document.getElementById('openLrc').addEventListener('click', async () => {
 
 document.getElementById('saveLrc').addEventListener('click', async () => {
   const content = serializeLrc();
-  const def = state.lrcPath || 'lyrics.lrc';
-  const saved = await window.api.saveLrc(content, def);
+  const saved = await window.api.saveLrc(content, defaultSaveName());
   if (saved) { state.lrcPath = saved; setStatus('저장됨: ' + saved); }
 });
+
+// 저장 기본 파일명: 이미 연 lrc가 있으면 그 경로, 아니면 mp3파일명.lrc, 둘 다 없으면 lyrics.lrc
+function defaultSaveName() {
+  if (state.lrcPath) return state.lrcPath;
+  if (state.audioName) return state.audioName.replace(/\.[^.]+$/, '') + '.lrc';
+  return 'lyrics.lrc';
+}
 
 document.getElementById('newLrc').addEventListener('click', () => {
   if (state.lines.length > 0 &&
@@ -325,17 +325,6 @@ document.getElementById('clearLrc').addEventListener('click', () => {
   if (state.lines.length === 0) { setStatus('해제할 가사가 없습니다'); return; }
   if (!window.confirm('현재 가사를 해제할까요? 저장하지 않은 변경은 사라집니다.')) return;
   clearLrc();
-});
-
-document.getElementById('loadSample').addEventListener('click', async () => {
-  const res = await window.api.loadSample();
-  if (!res) { setStatus('샘플을 찾을 수 없습니다'); return; }
-  loadAudioFromBuffer(res.audio, res.audioName);
-  state.lines = parseLrc(res.lrc);
-  state.lrcPath = res.lrcPath;
-  state.selected = 0;
-  render();
-  setStatus('샘플 로드됨: ' + res.audioName);
 });
 
 // ---------- 드래그앤드롭 ----------
