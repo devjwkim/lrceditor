@@ -1,0 +1,15 @@
+# 루트는 README.md 와 app/ 만 Git 으로 추적 (그 외 전부 제외)
+/*
+!/.gitignore
+!/README.md
+!/app/
+
+# app 내부 — 빌드/의존성 산출물 제외
+app/node_modules/
+app/dist/
+app/build/
+app/out/
+
+# 공통
+**/.DS_Store
+*.log

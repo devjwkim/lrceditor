@@ -1,0 +1,106 @@
+:root {
+  --bg: #1e1f22;
+  --panel: #2a2c30;
+  --panel2: #34373c;
+  --line: #3c4046;
+  --text: #e8e8ea;
+  --muted: #9aa0a6;
+  --accent: #4f8cff;
+  --accent2: #2f6fe0;
+  --hi: #ffd24a;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0; height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+  background: var(--bg); color: var(--text);
+  -webkit-user-select: none; user-select: none;
+}
+
+.topbar {
+  display: flex; align-items: center; gap: 14px;
+  padding: 8px 14px; background: var(--panel);
+  border-bottom: 1px solid var(--line);
+}
+.topbar strong { letter-spacing: .5px; }
+.status { color: var(--muted); font-size: 13px; }
+
+.split { display: flex; height: calc(100% - 41px); }
+.pane { padding: 16px; overflow: auto; }
+.pane h2 { margin: 0 0 12px; font-size: 15px; }
+
+/* 좌측 재생기 */
+.player {
+  width: 360px; min-width: 300px; max-width: 460px;
+  background: var(--panel); border-right: 1px solid var(--line);
+  display: flex; flex-direction: column; gap: 14px;
+}
+.player.dragover { outline: 2px dashed var(--accent); outline-offset: -8px; }
+.dropHint {
+  border: 1.5px dashed var(--line); border-radius: 10px;
+  padding: 18px; text-align: center; color: var(--muted); font-size: 13px;
+}
+.trackName { font-size: 13px; color: var(--text); word-break: break-all; min-height: 18px; }
+
+.seekWrap { display: flex; flex-direction: column; gap: 6px; }
+#seek { width: 100%; accent-color: var(--accent); }
+.times { font-variant-numeric: tabular-nums; color: var(--muted); font-size: 13px; text-align: center; }
+
+.controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.controls .rate { margin-left: auto; font-size: 12px; color: var(--muted); }
+.fileBtns { display: flex; gap: 8px; margin-top: auto; }
+
+/* 우측 편집기 */
+.editor { flex: 1; display: flex; flex-direction: column; background: var(--bg); }
+.editorHead { display: flex; align-items: center; justify-content: space-between; }
+.editorBtns { display: flex; gap: 8px; }
+.stampBar { display: flex; align-items: center; gap: 10px; margin: 8px 0 12px; }
+.demoToggle { margin-left: auto; font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+
+button {
+  background: var(--panel2); color: var(--text); border: 1px solid var(--line);
+  padding: 7px 12px; border-radius: 8px; font-size: 13px; cursor: pointer;
+}
+button:hover { background: #3e4248; }
+button.primary { background: var(--accent); border-color: var(--accent2); color: #fff; font-weight: 600; }
+button.primary:hover { background: var(--accent2); }
+button:disabled { opacity: .4; cursor: not-allowed; }
+button.primary:disabled { background: var(--panel2); border-color: var(--line); color: var(--muted); }
+select { background: var(--panel2); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 3px 6px; }
+
+.lines { list-style: none; margin: 0; padding: 0; flex: 1; overflow: auto; }
+.row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 6px 8px; border-radius: 8px; border: 1px solid transparent;
+  cursor: pointer;
+}
+.row:hover { background: var(--panel); }
+.row.selected { background: var(--panel2); border-color: var(--accent); }
+.row.active { background: rgba(255, 210, 74, .12); }
+.row .ts {
+  font-variant-numeric: tabular-nums; font-size: 13px;
+  color: var(--accent); width: 84px; flex: none; text-align: center;
+  background: var(--panel); border-radius: 6px; padding: 3px 0;
+}
+.row.active .ts { color: var(--hi); }
+.row .ts.empty { color: var(--muted); }
+.row .txt {
+  flex: 1; min-height: 1.4em; font-size: 14px; outline: none;
+  color: var(--text); caret-color: var(--accent);
+  -webkit-user-select: text; user-select: text;
+}
+/* 붙여넣기로 들어온 인라인 색상/배경 무시하고 순수 텍스트처럼 표시 */
+.row .txt * { color: inherit !important; background: transparent !important; font: inherit !important; }
+/* 글자가 없는 줄도 클릭 영역이 보이도록 안내 문구 (편집 중엔 숨김) */
+.row .txt:empty:not(:focus)::before { content: '가사 입력…'; color: var(--muted); }
+.row.active .txt { color: var(--hi); font-weight: 600; }
+.row .del { color: var(--muted); border: none; background: none; padding: 2px 6px; font-size: 15px; }
+.row .del:hover { color: #ff6b6b; background: none; }
+
+.hint { color: var(--muted); font-size: 12px; padding: 10px 2px 0; }
+kbd {
+  background: var(--panel2); border: 1px solid var(--line); border-bottom-width: 2px;
+  border-radius: 4px; padding: 0 5px; font-size: 11px;
+}
