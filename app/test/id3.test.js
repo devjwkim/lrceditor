@@ -27,6 +27,16 @@ if (fs.existsSync(sample)) {
     assert.ok(tg.picture && tg.picture.data.length > 0, '앨범아트 없음');
     assert.ok(/^image\//.test(tg.picture.mime), 'mime 형식 이상: ' + tg.picture.mime);
   });
+  test('strip: 태그 제거 후 재파싱 시 비어있음', () => {
+    const orig = fs.readFileSync(sample);
+    const stripped = id3.strip(orig);
+    const re = id3.parse(stripped);
+    assert.strictEqual(re.title, '');
+    assert.strictEqual(re.artist, '');
+    assert.strictEqual(re.album, '');
+    assert.ok(re.picture == null, '앨범아트가 남아있음');
+    assert.ok(stripped.length < orig.length, '크기가 줄지 않음');
+  });
 } else {
   console.log('  - 샘플 mp3 없음 → 샘플 테스트 건너뜀');
 }

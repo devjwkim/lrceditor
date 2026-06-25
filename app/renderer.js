@@ -7,6 +7,7 @@ const state = {
   lrcPath: null,
   audioUrl: null,
   audioName: null,    // 로드된 mp3 파일명 (저장 기본 파일명에 사용)
+  audioPath: null,    // 로드된 mp3 전체 경로 (태그 비우기 등 파일 작업용)
   tags: null,         // { title, artist, album, pictureDataUrl }
 };
 
@@ -246,6 +247,7 @@ async function loadAudioFromPath(filePath, name) {
   if (state.audioUrl) URL.revokeObjectURL(state.audioUrl);
   state.audioUrl = URL.createObjectURL(blob);
   state.audioName = name || filePath.split(/[\\/]/).pop();
+  state.audioPath = filePath;
   audio.src = state.audioUrl;
   document.getElementById('trackName').textContent = state.audioName;
   setStatus(t('status.audioLoaded', { name: state.audioName }));
@@ -280,6 +282,7 @@ function clearAudio() {
   audio.load();
   if (state.audioUrl) { URL.revokeObjectURL(state.audioUrl); state.audioUrl = null; }
   state.audioName = null;
+  state.audioPath = null;
   state.tags = null;
   updateMetaUI();
   document.getElementById('trackName').textContent = t('player.noFile');
@@ -414,6 +417,8 @@ document.addEventListener('keydown', (e) => {
   if (demoOpen) {
     if (e.code === 'Space') { e.preventDefault(); audio.paused ? audio.play() : audio.pause(); }
     else if (e.key === 'Escape') { e.preventDefault(); closeDemo(); }
+    else if (e.key === 'ArrowLeft') { e.preventDefault(); seekTo(audio.currentTime - 5); }
+    else if (e.key === 'ArrowRight') { e.preventDefault(); seekTo(audio.currentTime + 5); }
     return;
   }
   const ae = document.activeElement;
@@ -423,6 +428,8 @@ document.addEventListener('keydown', (e) => {
   else if (e.code === 'Space') { e.preventDefault(); audio.paused ? audio.play() : audio.pause(); }
   else if (e.key === 'ArrowDown') { e.preventDefault(); selectRow(Math.min(state.selected + 1, state.lines.length - 1)); }
   else if (e.key === 'ArrowUp') { e.preventDefault(); selectRow(Math.max(state.selected - 1, 0)); }
+  else if (e.key === 'ArrowLeft') { e.preventDefault(); seekTo(audio.currentTime - 5); }   // 5초 뒤로
+  else if (e.key === 'ArrowRight') { e.preventDefault(); seekTo(audio.currentTime + 5); }    // 5초 앞으로
 });
 
 // ---------- 파일 버튼 ----------
@@ -457,6 +464,19 @@ document.getElementById('newLrc').addEventListener('click', () => {
 document.getElementById('clearMp3').addEventListener('click', () => {
   if (!state.audioUrl) { setStatus(t('status.noMp3ToClear')); return; }
   clearAudio();
+});
+
+document.getElementById('tagClear').addEventListener('click', async () => {
+  if (!state.audioPath) { setStatus(t('tagclear.noMp3')); return; }
+  if (!window.confirm(t('tagclear.confirm'))) return;       // 먼저 확인
+  const res = await window.api.clearTags(state.audioPath);
+  if (res && res.ok) {
+    state.tags = { title: null, artist: null, album: null, pictureDataUrl: null };
+    updateMetaUI();                                          // 비워진 메타 즉시 반영
+    setStatus(t('tagclear.done', { name: state.audioName }));
+  } else {
+    setStatus(t('tagclear.fail') + (res && res.error ? ': ' + res.error : ''));
+  }
 });
 
 document.getElementById('clearLrc').addEventListener('click', () => {

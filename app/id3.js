@@ -75,4 +75,21 @@ function parse(buf) {
   return out;
 }
 
-module.exports = { parse };
+// 모든 ID3 태그 제거(앞쪽 ID3v2 + 끝 ID3v1) → 오디오 프레임만 남긴 새 버퍼 반환
+function strip(buf) {
+  if (!Buffer.isBuffer(buf)) buf = Buffer.from(buf);
+  let start = 0, end = buf.length;
+  // 앞쪽 ID3v2 (헤더 10B + size + 푸터 10B[v2.4 flag 0x10])
+  if (buf.length >= 10 && buf.toString('latin1', 0, 3) === 'ID3') {
+    const footer = (buf[5] & 0x10) ? 10 : 0;
+    const len = 10 + synchsafe(buf, 6) + footer;
+    if (len > 0 && len <= buf.length) start = len;
+  }
+  // 끝쪽 ID3v1 (128B, 'TAG')
+  if (end - start >= 128 && buf.toString('latin1', end - 128, end - 125) === 'TAG') {
+    end -= 128;
+  }
+  return buf.slice(start, end);
+}
+
+module.exports = { parse, strip };

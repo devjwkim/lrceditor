@@ -111,6 +111,18 @@ ipcMain.handle('file:readLrc', async (_evt, filePath) => {
   return fs.readFile(filePath, 'utf8');
 });
 
+// mp3 ID3 태그 전부 제거 후 파일에 다시 저장
+ipcMain.handle('file:clearTags', async (_evt, filePath) => {
+  try {
+    const buf = await fs.readFile(filePath);
+    const stripped = id3.strip(buf);
+    await fs.writeFile(filePath, stripped);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: String((e && e.message) || e) };
+  }
+});
+
 // mp3 ID3 태그 읽기 → {title, artist, album, pictureDataUrl}
 ipcMain.handle('file:readTags', async (_evt, filePath) => {
   try {
