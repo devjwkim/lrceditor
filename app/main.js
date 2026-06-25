@@ -1,6 +1,6 @@
 'use strict';
 
-const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, nativeImage } = require('electron');
 const path = require('path');
 const fs = require('fs/promises');
 const id3 = require('./id3');
@@ -109,6 +109,33 @@ ipcMain.handle('file:readAudio', async (_evt, filePath) => {
 // 경로로 lrc 텍스트 읽기 (드래그앤드롭 등)
 ipcMain.handle('file:readLrc', async (_evt, filePath) => {
   return fs.readFile(filePath, 'utf8');
+});
+
+// 이미지를 앨범 표지로 설정 (작은 기기용으로 ≤300px JPEG 변환 후 mp3에 삽입)
+// c.sh 기준: 300x300 이내 축소, JPEG q80. 기존 제목/아티스트/앨범은 보존.
+ipcMain.handle('file:setCover', async (_evt, filePath, imagePath) => {
+  try {
+    let img = nativeImage.createFromPath(imagePath);
+    if (img.isEmpty()) return { ok: false, error: 'unsupported image' };
+    const { width, height } = img.getSize();
+    const MAX = 300;
+    if (Math.max(width, height) > MAX) {
+      const s = MAX / Math.max(width, height);
+      img = img.resize({ width: Math.round(width * s), height: Math.round(height * s), quality: 'good' });
+    }
+    const jpeg = img.toJPEG(80);
+    const buf = await fs.readFile(filePath);
+    const old = id3.parse(buf);
+    const audio = id3.strip(buf);
+    const tag = id3.build({
+      title: old.title, artist: old.artist, album: old.album,
+      picture: { mime: 'image/jpeg', data: jpeg },
+    });
+    await fs.writeFile(filePath, Buffer.concat([tag, audio]));
+    return { ok: true, pictureDataUrl: `data:image/jpeg;base64,${jpeg.toString('base64')}`, bytes: jpeg.length };
+  } catch (e) {
+    return { ok: false, error: String((e && e.message) || e) };
+  }
 });
 
 // mp3 ID3 태그 전부 제거 후 파일에 다시 저장

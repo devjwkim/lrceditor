@@ -18,6 +18,17 @@ test('비-ID3 버퍼는 빈 결과', () => {
   assert.deepStrictEqual({ t: r.title, a: r.artist, al: r.album, p: r.picture }, { t: '', a: '', al: '', p: null });
 });
 
+test('build → parse 라운드트립 (텍스트+APIC)', () => {
+  const pic = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3, 4, 0xff, 0xd9]); // 더미 JPEG
+  const tag = id3.build({ title: '제목T', artist: 'Artist', album: 'Álbum', picture: { mime: 'image/jpeg', data: pic } });
+  const r = id3.parse(tag);
+  assert.strictEqual(r.title, '제목T');
+  assert.strictEqual(r.artist, 'Artist');
+  assert.strictEqual(r.album, 'Álbum');
+  assert.ok(r.picture && r.picture.mime === 'image/jpeg');
+  assert.ok(r.picture.data.equals(pic), 'APIC 이미지 바이트 불일치');
+});
+
 const sample = path.join(__dirname, '..', '..', 'sample', 'cherry.mp3');
 if (fs.existsSync(sample)) {
   const tg = id3.parse(fs.readFileSync(sample));

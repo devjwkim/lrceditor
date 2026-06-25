@@ -254,6 +254,21 @@ async function loadAudioFromPath(filePath, name) {
   applyTags(filePath); // ID3 태그 비동기 로드 (실패해도 재생엔 영향 없음)
 }
 
+// 드롭한 이미지를 앨범 표지로 설정 (확인 → ≤300px JPEG 변환 → mp3 삽입 → 재표기)
+async function applyCover(imagePath) {
+  if (!state.audioPath) { setStatus(t('cover.noMp3')); return; }
+  if (!window.confirm(t('cover.confirm'))) return;
+  const res = await window.api.setCover(state.audioPath, imagePath);
+  if (res && res.ok) {
+    state.tags = Object.assign({ title: null, artist: null, album: null }, state.tags || {}, { pictureDataUrl: res.pictureDataUrl });
+    updateMetaUI();                                          // 반영된 표지 다시 표기
+    if (demoOpen) updateDemoMeta();
+    setStatus(t('cover.done', { kb: Math.round((res.bytes || 0) / 1024) }));
+  } else {
+    setStatus(t('cover.fail') + (res && res.error ? ': ' + res.error : ''));
+  }
+}
+
 // mp3 태그 읽어 메타 UI 갱신
 async function applyTags(filePath) {
   try { state.tags = await window.api.readTags(filePath); }
@@ -517,6 +532,8 @@ window.addEventListener('drop', async (e) => {
       const content = await window.api.readLrc(p);
       state.lines = parseLrc(content); state.lrcPath = p; state.selected = 0; render();
       setStatus(t('status.lrcLoaded', { name: file.name }));   // lrc → 편집기
+    } else if (/\.(png|jpe?g)$/.test(lower)) {
+      await applyCover(p);                                      // 이미지 → 표지
     } else {
       await loadAudioFromPath(p, file.name);                    // mp3 등 → 재생기
     }

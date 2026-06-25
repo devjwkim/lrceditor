@@ -9,6 +9,7 @@ contextBridge.exposeInMainWorld('api', {
   readLrc: (filePath) => ipcRenderer.invoke('file:readLrc', filePath),
   readTags: (filePath) => ipcRenderer.invoke('file:readTags', filePath),
   clearTags: (filePath) => ipcRenderer.invoke('file:clearTags', filePath),
+  setCover: (filePath, imagePath) => ipcRenderer.invoke('file:setCover', filePath, imagePath),
   saveLrc: (content, defaultPath) => ipcRenderer.invoke('dialog:saveLrc', { content, defaultPath }),
   // 드래그앤드롭된 File 객체 → 실제 파일 경로 (Electron 32: file.path 제거됨)
   pathForFile: (file) => webUtils.getPathForFile(file),

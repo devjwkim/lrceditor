@@ -92,4 +92,41 @@ function strip(buf) {
   return buf.slice(start, end);
 }
 
-module.exports = { parse, strip };
+// ----- ID3v2.4 태그 작성 (제목/아티스트/앨범 텍스트 + APIC 표지) -----
+const encSync = (n) => Buffer.from([(n >> 21) & 0x7f, (n >> 14) & 0x7f, (n >> 7) & 0x7f, n & 0x7f]);
+
+function frame(id, body) {
+  return Buffer.concat([Buffer.from(id, 'latin1'), encSync(body.length), Buffer.from([0, 0]), body]);
+}
+function textFrame(id, text) {
+  if (!text) return null;
+  return frame(id, Buffer.concat([Buffer.from([0x03]), Buffer.from(String(text), 'utf8')])); // enc 3 = UTF-8
+}
+function apicFrame(mime, data) {
+  const head = Buffer.concat([
+    Buffer.from([0x03]),                          // 텍스트 인코딩(UTF-8)
+    Buffer.from(mime || 'image/jpeg', 'latin1'), Buffer.from([0x00]), // MIME + null
+    Buffer.from([0x03]),                          // 그림 종류 0x03 = 앞표지
+    Buffer.from([0x00]),                          // 설명(빈값) + null
+  ]);
+  return frame('APIC', Buffer.concat([head, data]));
+}
+
+// meta: { title, artist, album, picture:{mime,data} } → ID3v2.4 태그 버퍼
+function build(meta) {
+  meta = meta || {};
+  const frames = [
+    textFrame('TIT2', meta.title),
+    textFrame('TPE1', meta.artist),
+    textFrame('TALB', meta.album),
+    (meta.picture && meta.picture.data && meta.picture.data.length)
+      ? apicFrame(meta.picture.mime, meta.picture.data) : null,
+  ].filter(Boolean);
+  const body = Buffer.concat(frames);
+  const header = Buffer.concat([
+    Buffer.from('ID3', 'latin1'), Buffer.from([0x04, 0x00, 0x00]), encSync(body.length),
+  ]);
+  return Buffer.concat([header, body]);
+}
+
+module.exports = { parse, strip, build };
