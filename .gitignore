@@ -10,6 +10,9 @@
 app/node_modules/
 app/dist/
 app/out/
+# 서명/공증 자격증명 — 절대 커밋 금지
+app/.env
+.env
 # 훅이 app/ 에서 실행되며 생성된 자동 로그(노이즈) — 정식 메모리는 루트 memory/
 app/memory/
 
