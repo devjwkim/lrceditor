@@ -64,6 +64,13 @@
         </label>
       </div>
 
+      <div class="gainRow">
+        <span class="gainTag">🔊</span>
+        <span id="gainNow" class="gainNow">—</span>
+        <input id="gainTarget" type="number" step="0.5" value="89" class="gainInput" data-i18n-ph="gain.ph" />
+        <button id="gainApply" data-i18n="btn.gainApply" data-i18n-title="tip.gainApply">Adjust</button>
+      </div>
+
       <div class="fileBtns">
         <button id="openMp3" data-i18n="btn.openMp3">Open mp3…</button>
         <button id="clearMp3" data-i18n="btn.clearMp3" data-i18n-title="tip.clearMp3">Clear mp3</button>
@@ -148,8 +155,25 @@
     </div>
   </div>
 
+  <!-- 태그 비우기 선택 모달 -->
+  <div id="tagClearModal" class="modal-overlay" hidden>
+    <div class="modal modal-sm">
+      <div class="modal-head">
+        <strong data-i18n="tagclear.title">Clear tags</strong>
+        <button id="tcClose" class="modal-x">✕</button>
+      </div>
+      <div class="modal-msg" data-i18n="tagclear.msg"></div>
+      <div class="modal-foot">
+        <button id="tcCancel" data-i18n="multi.cancel">Cancel</button>
+        <button id="tcKeepCover" data-i18n="tagclear.keepCover">Clear, keep cover</button>
+        <button id="tcAll" class="primary" data-i18n="tagclear.all">Clear everything</button>
+      </div>
+    </div>
+  </div>
+
   <script src="i18n.js"></script>
   <script src="lrc-core.js"></script>
+  <script src="replaygain.js"></script>
   <script src="renderer.js"></script>
 </body>
 </html>

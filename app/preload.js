@@ -8,8 +8,9 @@ contextBridge.exposeInMainWorld('api', {
   readAudio: (filePath) => ipcRenderer.invoke('file:readAudio', filePath),
   readLrc: (filePath) => ipcRenderer.invoke('file:readLrc', filePath),
   readTags: (filePath) => ipcRenderer.invoke('file:readTags', filePath),
-  clearTags: (filePath) => ipcRenderer.invoke('file:clearTags', filePath),
+  clearTags: (filePath, keepCover) => ipcRenderer.invoke('file:clearTags', filePath, keepCover),
   setCover: (filePath, imagePath) => ipcRenderer.invoke('file:setCover', filePath, imagePath),
+  applyGain: (filePath, steps) => ipcRenderer.invoke('file:applyGain', filePath, steps),
   saveLrc: (content, defaultPath) => ipcRenderer.invoke('dialog:saveLrc', { content, defaultPath }),
   // 드래그앤드롭된 File 객체 → 실제 파일 경로 (Electron 32: file.path 제거됨)
   pathForFile: (file) => webUtils.getPathForFile(file),

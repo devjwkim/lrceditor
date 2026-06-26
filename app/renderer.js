@@ -9,6 +9,7 @@ const state = {
   audioName: null,    // 로드된 mp3 파일명 (저장 기본 파일명에 사용)
   audioPath: null,    // 로드된 mp3 전체 경로 (태그 비우기 등 파일 작업용)
   tags: null,         // { title, artist, album, pictureDataUrl }
+  loudness: null,     // { peakDb, rmsDb } — Web Audio 측정
 };
 
 const audio = document.getElementById('audio');
@@ -252,6 +253,37 @@ async function loadAudioFromPath(filePath, name) {
   document.getElementById('trackName').textContent = state.audioName;
   setStatus(t('status.audioLoaded', { name: state.audioName }));
   applyTags(filePath); // ID3 태그 비동기 로드 (실패해도 재생엔 영향 없음)
+  state.loudness = null; updateGainUI();
+  measureLoudness(ab).then((l) => { state.loudness = l; updateGainUI(); }); // 비동기 볼륨 측정
+}
+
+// Web Audio 로 디코드 → ReplayGain(MP3Gain 호환) 측정: { volume, trackGain, peak }
+async function measureLoudness(arrayBuffer) {
+  try {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    const ctx = new Ctx();
+    const buf = await ctx.decodeAudioData(arrayBuffer);
+    const sr = buf.sampleRate;
+    const L = buf.getChannelData(0);
+    const R = buf.numberOfChannels > 1 ? buf.getChannelData(1) : L;
+    ctx.close();
+    return window.ReplayGain.measure(L, R, sr) || window.ReplayGain.measure(L, R, 44100);
+  } catch { return null; }
+}
+
+function gainTargetVal() {
+  const v = parseFloat(document.getElementById('gainTarget').value);
+  return isFinite(v) ? v : window.ReplayGain.REF;
+}
+
+function updateGainUI() {
+  const el = document.getElementById('gainNow');
+  if (!el) return;
+  if (!state.audioUrl) { el.textContent = '—'; return; }
+  const l = state.loudness;
+  if (!l) { el.textContent = t('gain.analyzing'); return; }
+  const apply = gainTargetVal() - l.volume;   // 목표까지 적용할 보정(dB)
+  el.textContent = t('gain.now', { vol: l.volume.toFixed(1), gain: (apply >= 0 ? '+' : '') + apply.toFixed(1) });
 }
 
 // 드롭한 이미지를 앨범 표지로 설정 (확인 → ≤300px JPEG 변환 → mp3 삽입 → 재표기)
@@ -299,7 +331,9 @@ function clearAudio() {
   state.audioName = null;
   state.audioPath = null;
   state.tags = null;
+  state.loudness = null;
   updateMetaUI();
+  updateGainUI();
   document.getElementById('trackName').textContent = t('player.noFile');
   seek.value = 0; seek.max = 100;
   curTimeEl.textContent = fmt(0);
@@ -429,6 +463,10 @@ document.addEventListener('keydown', (e) => {
     else if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); commitMulti(); }
     return;
   }
+  if (!document.getElementById('tagClearModal').hidden) { // 태그 비우기 모달 열림
+    if (e.key === 'Escape') { e.preventDefault(); document.getElementById('tagClearModal').hidden = true; }
+    return;
+  }
   if (demoOpen) {
     if (e.code === 'Space') { e.preventDefault(); audio.paused ? audio.play() : audio.pause(); }
     else if (e.key === 'Escape') { e.preventDefault(); closeDemo(); }
@@ -481,18 +519,48 @@ document.getElementById('clearMp3').addEventListener('click', () => {
   clearAudio();
 });
 
-document.getElementById('tagClear').addEventListener('click', async () => {
-  if (!state.audioPath) { setStatus(t('tagclear.noMp3')); return; }
-  if (!window.confirm(t('tagclear.confirm'))) return;       // 먼저 확인
-  const res = await window.api.clearTags(state.audioPath);
+document.getElementById('gainTarget').addEventListener('input', updateGainUI); // 목표 바꾸면 보정값 갱신
+document.getElementById('gainApply').addEventListener('click', async () => {
+  if (!state.audioPath) { setStatus(t('gain.noMp3')); return; }
+  if (!state.loudness) { setStatus(t('gain.analyzing')); return; }
+  const raw = document.getElementById('gainTarget').value;
+  if (String(raw).trim() === '' || !isFinite(parseFloat(raw))) { setStatus(t('gain.invalid')); return; }
+  const steps = Math.round((parseFloat(raw) - state.loudness.volume) / 1.5); // 1 step = 1.5dB
+  if (steps === 0) { setStatus(t('gain.already')); return; }
+  const res = await window.api.applyGain(state.audioPath, steps);
   if (res && res.ok) {
-    state.tags = { title: null, artist: null, album: null, pictureDataUrl: null };
-    updateMetaUI();                                          // 비워진 메타 즉시 반영
-    setStatus(t('tagclear.done', { name: state.audioName }));
+    const db = steps * 1.5;
+    await loadAudioFromPath(state.audioPath, state.audioName); // 파일 변경됨 → 재로드+재측정
+    setStatus(t('gain.applied', { db: (db > 0 ? '+' : '') + db.toFixed(1) }));
+  } else {
+    setStatus(t('gain.fail') + (res && res.error ? ': ' + res.error : ''));
+  }
+});
+
+// 태그 비우기: 표지 유지/전부 비우기 선택 모달
+const tagClearModal = document.getElementById('tagClearModal');
+function closeTagClear() { tagClearModal.hidden = true; }
+async function doClearTags(keepCover) {
+  closeTagClear();
+  const res = await window.api.clearTags(state.audioPath, keepCover);
+  if (res && res.ok) {
+    const cover = keepCover ? (state.tags && state.tags.pictureDataUrl) || null : null;
+    state.tags = { title: null, artist: null, album: null, pictureDataUrl: cover };
+    updateMetaUI();
+    setStatus(t(keepCover ? 'tagclear.doneKept' : 'tagclear.done', { name: state.audioName }));
   } else {
     setStatus(t('tagclear.fail') + (res && res.error ? ': ' + res.error : ''));
   }
+}
+document.getElementById('tagClear').addEventListener('click', () => {
+  if (!state.audioPath) { setStatus(t('tagclear.noMp3')); return; }
+  tagClearModal.hidden = false;
 });
+document.getElementById('tcClose').addEventListener('click', closeTagClear);
+document.getElementById('tcCancel').addEventListener('click', closeTagClear);
+document.getElementById('tcKeepCover').addEventListener('click', () => doClearTags(true));
+document.getElementById('tcAll').addEventListener('click', () => doClearTags(false));
+tagClearModal.addEventListener('mousedown', (e) => { if (e.target === tagClearModal) closeTagClear(); });
 
 document.getElementById('clearLrc').addEventListener('click', () => {
   if (state.lines.length === 0) { setStatus(t('status.noLrcToClear')); return; }
@@ -680,6 +748,7 @@ function applyI18n() {
   // 시작 안내(아직 동적 상태 메시지가 없을 때만)
   if (!statusDirty) setStatus(t('status.initial'), false);
   if (multiModal && !multiModal.hidden) updateMultiPreview(); // 모달 열린 채 언어 변경 시 라벨/카운트 갱신
+  updateGainUI();
   updateStampBtn();
 }
 

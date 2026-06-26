@@ -4,6 +4,7 @@ const { app, BrowserWindow, ipcMain, dialog, nativeImage } = require('electron')
 const path = require('path');
 const fs = require('fs/promises');
 const id3 = require('./id3');
+const mp3gain = require('./mp3gain');
 
 let mainWindow = null;
 
@@ -111,6 +112,18 @@ ipcMain.handle('file:readLrc', async (_evt, filePath) => {
   return fs.readFile(filePath, 'utf8');
 });
 
+// 무손실 게인: 모든 프레임 global_gain 을 steps(1.5dB 단위) 만큼 가감 후 저장
+ipcMain.handle('file:applyGain', async (_evt, filePath, steps) => {
+  try {
+    const buf = await fs.readFile(filePath);
+    const out = mp3gain.applyGainSteps(buf, Math.round(steps));
+    await fs.writeFile(filePath, out);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: String((e && e.message) || e) };
+  }
+});
+
 // 이미지를 앨범 표지로 설정 (작은 기기용으로 ≤300px JPEG 변환 후 mp3에 삽입)
 // c.sh 기준: 300x300 이내 축소, JPEG q80. 기존 제목/아티스트/앨범은 보존.
 ipcMain.handle('file:setCover', async (_evt, filePath, imagePath) => {
@@ -138,12 +151,19 @@ ipcMain.handle('file:setCover', async (_evt, filePath, imagePath) => {
   }
 });
 
-// mp3 ID3 태그 전부 제거 후 파일에 다시 저장
-ipcMain.handle('file:clearTags', async (_evt, filePath) => {
+// mp3 ID3 태그 제거. keepCover=true 면 앨범 표지(APIC)만 남기고 텍스트 태그 제거.
+ipcMain.handle('file:clearTags', async (_evt, filePath, keepCover) => {
   try {
     const buf = await fs.readFile(filePath);
-    const stripped = id3.strip(buf);
-    await fs.writeFile(filePath, stripped);
+    const audio = id3.strip(buf);
+    let out = audio;
+    if (keepCover) {
+      const old = id3.parse(buf);
+      if (old.picture && old.picture.data && old.picture.data.length) {
+        out = Buffer.concat([id3.build({ picture: { mime: old.picture.mime, data: old.picture.data } }), audio]);
+      }
+    }
+    await fs.writeFile(filePath, out);
     return { ok: true };
   } catch (e) {
     return { ok: false, error: String((e && e.message) || e) };
