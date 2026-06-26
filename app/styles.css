@@ -179,6 +179,10 @@ kbd {
 .m-album { font-size: 12px; color: var(--muted); word-break: break-all; }
 .trackName { font-size: 11px; color: var(--muted); word-break: break-all; }
 .m-title:empty, .m-artist:empty, .m-album:empty { display: none; }
+/* 메타 텍스트는 드래그 선택·복사 허용 (가사 .txt 와 동일 방식) */
+.metaText, .metaText .m-title, .metaText .m-artist, .metaText .m-album, .metaText .trackName {
+  -webkit-user-select: text; user-select: text; cursor: text;
+}
 
 /* 데모 플레이 상단 메타 */
 .demo-meta { display: flex; align-items: center; gap: 9px; min-width: 0; max-width: 34%; }

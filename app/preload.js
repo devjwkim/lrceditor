@@ -9,6 +9,7 @@ contextBridge.exposeInMainWorld('api', {
   readLrc: (filePath) => ipcRenderer.invoke('file:readLrc', filePath),
   readTags: (filePath) => ipcRenderer.invoke('file:readTags', filePath),
   clearTags: (filePath, keepCover) => ipcRenderer.invoke('file:clearTags', filePath, keepCover),
+  resetTags: (filePath, title) => ipcRenderer.invoke('file:resetTags', filePath, title),
   setCover: (filePath, imagePath) => ipcRenderer.invoke('file:setCover', filePath, imagePath),
   applyGain: (filePath, steps) => ipcRenderer.invoke('file:applyGain', filePath, steps),
   saveLrc: (content, defaultPath) => ipcRenderer.invoke('dialog:saveLrc', { content, defaultPath }),

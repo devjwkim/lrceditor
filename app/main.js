@@ -170,6 +170,23 @@ ipcMain.handle('file:clearTags', async (_evt, filePath, keepCover) => {
   }
 });
 
+// mp3 ID3 태그 초기화: 표지(APIC)는 유지, 나머지 텍스트 태그는 비우고 제목을 파일명으로 채움.
+ipcMain.handle('file:resetTags', async (_evt, filePath, title) => {
+  try {
+    const buf = await fs.readFile(filePath);
+    const audio = id3.strip(buf);
+    const old = id3.parse(buf);
+    const meta = { title: title || '' };
+    if (old.picture && old.picture.data && old.picture.data.length) {
+      meta.picture = { mime: old.picture.mime, data: old.picture.data };
+    }
+    await fs.writeFile(filePath, Buffer.concat([id3.build(meta), audio]));
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: String((e && e.message) || e) };
+  }
+});
+
 // mp3 ID3 태그 읽기 → {title, artist, album, pictureDataUrl}
 ipcMain.handle('file:readTags', async (_evt, filePath) => {
   try {

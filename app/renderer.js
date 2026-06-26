@@ -322,27 +322,6 @@ function seekTo(sec) {
   audio.currentTime = Math.max(0, Math.min(sec, audio.duration));
 }
 
-// 현재 mp3 해제 → 다른 mp3 첨부 가능 상태로
-function clearAudio() {
-  audio.pause();
-  audio.removeAttribute('src');
-  audio.load();
-  if (state.audioUrl) { URL.revokeObjectURL(state.audioUrl); state.audioUrl = null; }
-  state.audioName = null;
-  state.audioPath = null;
-  state.tags = null;
-  state.loudness = null;
-  updateMetaUI();
-  updateGainUI();
-  document.getElementById('trackName').textContent = t('player.noFile');
-  seek.value = 0; seek.max = 100;
-  curTimeEl.textContent = fmt(0);
-  durTimeEl.textContent = fmt(0);
-  playBtn.textContent = t('btn.play');
-  lastActive = -1;
-  setStatus(t('status.mp3Cleared'));
-}
-
 // 빈 LRC로 새로 시작 (읽어오기 없이 바로 작성)
 function startNewLrc() {
   state.lines = [{ time: null, text: '' }];
@@ -514,11 +493,6 @@ document.getElementById('newLrc').addEventListener('click', () => {
   startNewLrc();
 });
 
-document.getElementById('clearMp3').addEventListener('click', () => {
-  if (!state.audioUrl) { setStatus(t('status.noMp3ToClear')); return; }
-  clearAudio();
-});
-
 document.getElementById('gainTarget').addEventListener('input', updateGainUI); // 목표 바꾸면 보정값 갱신
 document.getElementById('gainApply').addEventListener('click', async () => {
   if (!state.audioPath) { setStatus(t('gain.noMp3')); return; }
@@ -561,6 +535,21 @@ document.getElementById('tcCancel').addEventListener('click', closeTagClear);
 document.getElementById('tcKeepCover').addEventListener('click', () => doClearTags(true));
 document.getElementById('tcAll').addEventListener('click', () => doClearTags(false));
 tagClearModal.addEventListener('mousedown', (e) => { if (e.target === tagClearModal) closeTagClear(); });
+
+// 태그 초기화: 표지 유지, 나머지 비우고 제목을 파일명으로 채움 (확인 1회)
+document.getElementById('tagReset').addEventListener('click', async () => {
+  if (!state.audioPath) { setStatus(t('tagclear.noMp3')); return; }
+  if (!window.confirm(t('tagreset.confirm'))) return;
+  const title = state.audioName.replace(/\.[^.]+$/, '');
+  const res = await window.api.resetTags(state.audioPath, title);
+  if (res && res.ok) {
+    state.tags = { title, artist: null, album: null, pictureDataUrl: (state.tags && state.tags.pictureDataUrl) || null };
+    updateMetaUI();
+    setStatus(t('tagreset.done', { title }));
+  } else {
+    setStatus(t('tagclear.fail') + (res && res.error ? ': ' + res.error : ''));
+  }
+});
 
 document.getElementById('clearLrc').addEventListener('click', () => {
   if (state.lines.length === 0) { setStatus(t('status.noLrcToClear')); return; }
